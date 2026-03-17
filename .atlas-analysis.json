@@ -1,0 +1,128 @@
+{
+  "projectType": "saas",
+  "projectName": "B-Accesible",
+  "projectDescription": "B-Accesible is an accessible digital banking PoC for people with low digital literacy and visual, auditory, or cognitive disabilities, powered by responsible AI for nudging, accessibility profiling, and fraud risk detection.",
+  "theme": "almond",
+  "primaryColor": "#23aae2",
+  "lightColor": "#72c6eb",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "architecture"]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/accessibility",
+              "features/ai-nudging",
+              "features/risk-detection",
+              "features/open-finance",
+              "features/transactions"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/docker",
+              "deployment/environment-variables",
+              "deployment/services"
+            ]
+          },
+          {
+            "group": "Ethics & Methodology",
+            "pages": [
+              "ethics/ai-ethics",
+              "ethics/methodology"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth/register",
+              "api/auth/login",
+              "api/auth/profile",
+              "api/auth/accessibility-profile",
+              "api/auth/consent"
+            ]
+          },
+          {
+            "group": "Ledger",
+            "pages": [
+              "api/ledger/accounts",
+              "api/ledger/transactions",
+              "api/ledger/beneficiaries"
+            ]
+          },
+          {
+            "group": "AI Service",
+            "pages": [
+              "api/ai/nudge",
+              "api/ai/accessibility",
+              "api/ai/risk"
+            ]
+          },
+          {
+            "group": "Open Finance",
+            "pages": [
+              "api/openfinance/connections",
+              "api/openfinance/products"
+            ]
+          },
+          {
+            "group": "Analytics",
+            "pages": [
+              "api/analytics/events"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Adaptive accessibility profiles: automatic detection of user needs (screen reader, large text, high contrast, voice feedback)",
+    "AI nudging engine: real-time detection of user difficulty on each screen to offer contextual assistance",
+    "Fraud and transaction risk scoring with explainable risk factors",
+    "Open Finance integrations: connect and sync external bank accounts",
+    "Microservices architecture with Ocelot API Gateway and JWT authentication",
+    "SPEI-based transfers and ledger management",
+    "Accessibility wizard (WizardView) for onboarding users into their preferred UI mode",
+    "Analytics event tracking for measuring accessibility impact"
+  ],
+  "publicApiSurface": [
+    "POST /api/auth/register",
+    "POST /api/auth/login",
+    "GET /api/profile/me",
+    "PUT /api/profile/me",
+    "GET /api/profile/accessibility",
+    "PUT /api/profile/accessibility",
+    "GET /api/profile/consent",
+    "PUT /api/profile/consent",
+    "GET /api/ledger/accounts",
+    "POST /api/ledger/accounts",
+    "GET /api/ledger/transactions",
+    "POST /api/ledger/transactions",
+    "GET /api/ledger/beneficiaries",
+    "POST /api/ledger/beneficiaries",
+    "DELETE /api/ledger/beneficiaries/{id}",
+    "POST /ai/nudge",
+    "POST /ai/accessibility",
+    "POST /ai/risk",
+    "GET /ai/health",
+    "GET /api/openfinance/connections",
+    "POST /api/openfinance/connections",
+    "DELETE /api/openfinance/connections/{id}",
+    "GET /api/openfinance/products",
+    "POST /api/openfinance/sync/{connectionId}",
+    "POST /api/analytics/events"
+  ]
+}
