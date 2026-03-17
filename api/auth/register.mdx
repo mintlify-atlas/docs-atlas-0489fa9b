@@ -17,20 +17,20 @@ No authentication required. On success, the user is automatically logged in and 
 
 ## Request body
 
+<ParamField body="userName" type="string" required>
+  Display name for the user. Between 3 and 100 characters.
+</ParamField>
+
 <ParamField body="email" type="string" required>
-  User's email address. Must be unique across all accounts.
+  User's email address. Must be a valid email format and unique across all accounts.
 </ParamField>
 
 <ParamField body="password" type="string" required>
-  Account password. Must meet security requirements (minimum length, uppercase, digit, and special character).
+  Account password. Minimum 8 characters, maximum 100.
 </ParamField>
 
-<ParamField body="firstName" type="string" required>
-  User's first name.
-</ParamField>
-
-<ParamField body="lastName" type="string" required>
-  User's last name.
+<ParamField body="preferredLanguage" type="string">
+  Preferred UI language. Defaults to `"es-MX"`.
 </ParamField>
 
 ## Response
@@ -41,12 +41,8 @@ No authentication required. On success, the user is automatically logged in and 
   Signed JWT for authenticating subsequent requests.
 </ResponseField>
 
-<ResponseField name="expiresAt" type="string" required>
-  ISO 8601 timestamp indicating when the token expires.
-</ResponseField>
-
-<ResponseField name="userId" type="string" required>
-  UUID of the newly created user.
+<ResponseField name="expiresIn" type="integer" required>
+  Token lifetime in seconds.
 </ResponseField>
 
 ### Error responses
@@ -69,18 +65,17 @@ No authentication required. On success, the user is automatically logged in and 
 curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
+    "userName": "María González",
     "email": "maria@example.com",
     "password": "SecurePass123!",
-    "firstName": "María",
-    "lastName": "González"
+    "preferredLanguage": "es-MX"
   }'
 ```
 
 ```json Response
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expiresAt": "2026-03-18T00:00:00Z",
-  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  "expiresIn": 3600
 }
 ```
 

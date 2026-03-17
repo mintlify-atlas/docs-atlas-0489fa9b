@@ -21,32 +21,20 @@ Returns all bank accounts belonging to the authenticated user.
   Unique account identifier (UUID).
 </ResponseField>
 
-<ResponseField name="userId" type="string" required>
-  UUID of the account owner.
+<ResponseField name="accountNumber" type="string" required>
+  The account number (CLABE or other identifier).
 </ResponseField>
 
 <ResponseField name="accountType" type="string" required>
-  Type of account, e.g., `"checking"` or `"savings"`.
-</ResponseField>
-
-<ResponseField name="currency" type="string" required>
-  ISO 4217 currency code, e.g., `"MXN"`.
-</ResponseField>
-
-<ResponseField name="alias" type="string">
-  Friendly name assigned to the account.
-</ResponseField>
-
-<ResponseField name="clabe" type="string" required>
-  18-digit CLABE interbank number assigned to the account.
+  Type of account, e.g., `"DEFAULT"`, `"checking"`, `"savings"`.
 </ResponseField>
 
 <ResponseField name="balance" type="number" required>
   Current account balance.
 </ResponseField>
 
-<ResponseField name="createdAt" type="string" required>
-  ISO 8601 timestamp of account creation.
+<ResponseField name="currency" type="string" required>
+  ISO 4217 currency code, e.g., `"MXN"`.
 </ResponseField>
 
 <CodeGroup>
@@ -63,13 +51,10 @@ curl --request GET \
 [
   {
     "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "userId": "user-uuid",
-    "accountType": "checking",
-    "currency": "MXN",
-    "alias": "Cuenta principal",
-    "clabe": "646180123456789012",
+    "accountNumber": "646180123456789012",
+    "accountType": "DEFAULT",
     "balance": 15000.00,
-    "createdAt": "2026-03-01T10:00:00Z"
+    "currency": "MXN"
   }
 ]
 ```
@@ -86,16 +71,12 @@ Creates a new bank account for the authenticated user. Returns the created accou
 
 ### Request body
 
+<ParamField body="accountNumber" type="string" required>
+  Account number for the new account. Must be between 10 and 50 characters.
+</ParamField>
+
 <ParamField body="accountType" type="string" required>
-  Type of account to create, e.g., `"checking"` or `"savings"`.
-</ParamField>
-
-<ParamField body="currency" type="string" required>
-  ISO 4217 currency code for the account, e.g., `"MXN"`.
-</ParamField>
-
-<ParamField body="alias" type="string">
-  Optional friendly name for the account.
+  Type of account to create, e.g., `"DEFAULT"`, `"checking"`, `"savings"`. Must be between 3 and 50 characters.
 </ParamField>
 
 ### Response
@@ -117,9 +98,8 @@ curl --request POST \
   --header 'Authorization: Bearer <token>' \
   --header 'Content-Type: application/json' \
   --data '{
-  "accountType": "checking",
-  "currency": "MXN",
-  "alias": "Cuenta principal"
+  "accountNumber": "646180123456789012",
+  "accountType": "DEFAULT"
 }'
 ```
 
@@ -128,12 +108,9 @@ curl --request POST \
 ```json Response (201 Created)
 {
   "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "userId": "user-uuid",
-  "accountType": "checking",
-  "currency": "MXN",
-  "alias": "Cuenta principal",
-  "clabe": "646180123456789012",
+  "accountNumber": "646180123456789012",
+  "accountType": "DEFAULT",
   "balance": 0.00,
-  "createdAt": "2026-03-17T14:00:00Z"
+  "currency": "MXN"
 }
 ```

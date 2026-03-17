@@ -25,28 +25,24 @@ Returns all saved beneficiaries for the authenticated user.
   Unique beneficiary identifier (UUID).
 </ResponseField>
 
-<ResponseField name="userId" type="string" required>
-  UUID of the user who owns this beneficiary record.
-</ResponseField>
-
 <ResponseField name="name" type="string" required>
   Beneficiary's full name.
-</ResponseField>
-
-<ResponseField name="clabe" type="string" required>
-  18-digit CLABE of the beneficiary.
 </ResponseField>
 
 <ResponseField name="alias" type="string">
   Friendly name for quick identification.
 </ResponseField>
 
-<ResponseField name="bankName" type="string">
+<ResponseField name="accountNumber" type="string" required>
+  Beneficiary's account number (CLABE or other identifier).
+</ResponseField>
+
+<ResponseField name="bankName" type="string" required>
   Name of the beneficiary's bank.
 </ResponseField>
 
-<ResponseField name="createdAt" type="string" required>
-  ISO 8601 timestamp of when the beneficiary was saved.
+<ResponseField name="isFavorite" type="boolean" required>
+  Whether the beneficiary is marked as a favorite.
 </ResponseField>
 
 <CodeGroup>
@@ -63,12 +59,11 @@ curl --request GET \
 [
   {
     "id": "ben-uuid",
-    "userId": "user-uuid",
     "name": "Juan Pérez",
-    "clabe": "646180987654321098",
     "alias": "Juan",
+    "accountNumber": "646180987654321098",
     "bankName": "BBVA",
-    "createdAt": "2026-03-10T08:00:00Z"
+    "isFavorite": false
   }
 ]
 ```
@@ -89,23 +84,23 @@ Saves a new trusted recipient for the authenticated user.
   Beneficiary's full name.
 </ParamField>
 
-<ParamField body="clabe" type="string" required>
-  Beneficiary's 18-digit CLABE. Must be a valid Mexican interbank CLABE.
+<ParamField body="accountNumber" type="string" required>
+  Beneficiary's account number (CLABE or other identifier).
+</ParamField>
+
+<ParamField body="bankName" type="string" required>
+  Name of the beneficiary's bank.
 </ParamField>
 
 <ParamField body="alias" type="string">
   Optional friendly name for the beneficiary.
 </ParamField>
 
-<ParamField body="bankName" type="string">
-  Optional name of the beneficiary's bank.
-</ParamField>
-
 ### Error responses
 
 | Status | Description |
 |--------|-------------|
-| `400`  | Validation error — missing or invalid fields. |
+| `400`  | Validation error — `name`, `accountNumber`, and `bankName` are required. |
 | `401`  | Invalid or missing bearer token. |
 
 <CodeGroup>
@@ -117,9 +112,9 @@ curl --request POST \
   --header 'Content-Type: application/json' \
   --data '{
   "name": "Juan Pérez",
-  "clabe": "646180987654321098",
-  "alias": "Juan",
-  "bankName": "BBVA"
+  "accountNumber": "646180987654321098",
+  "bankName": "BBVA",
+  "alias": "Juan"
 }'
 ```
 
@@ -128,12 +123,11 @@ curl --request POST \
 ```json Response (201 Created)
 {
   "id": "ben-uuid",
-  "userId": "user-uuid",
   "name": "Juan Pérez",
-  "clabe": "646180987654321098",
   "alias": "Juan",
+  "accountNumber": "646180987654321098",
   "bankName": "BBVA",
-  "createdAt": "2026-03-17T14:00:00Z"
+  "isFavorite": false
 }
 ```
 

@@ -21,28 +21,16 @@ Returns all external bank connections for the authenticated user.
   Unique connection identifier (UUID).
 </ResponseField>
 
-<ResponseField name="userId" type="string" required>
-  UUID of the user who owns the connection.
+<ResponseField name="providerName" type="string" required>
+  Name of the connected Open Finance provider, e.g., `"BBVA"`, `"Banamex"`.
 </ResponseField>
 
-<ResponseField name="institutionName" type="string" required>
-  Name of the connected external institution, e.g., `"BBVA"`.
+<ResponseField name="status" type="string" required>
+  Connection status, e.g., `"active"`, `"pending"`, `"error"`.
 </ResponseField>
 
-<ResponseField name="externalAccountId" type="string" required>
-  Account identifier at the external institution.
-</ResponseField>
-
-<ResponseField name="accountAlias" type="string">
-  Friendly name for this connection.
-</ResponseField>
-
-<ResponseField name="lastSyncedAt" type="string">
+<ResponseField name="lastSync" type="string" required>
   ISO 8601 timestamp of the most recent successful sync.
-</ResponseField>
-
-<ResponseField name="createdAt" type="string" required>
-  ISO 8601 timestamp of when the connection was created.
 </ResponseField>
 
 <CodeGroup>
@@ -59,12 +47,9 @@ curl --request GET \
 [
   {
     "id": "conn-uuid",
-    "userId": "user-uuid",
-    "institutionName": "BBVA",
-    "externalAccountId": "ext-123",
-    "accountAlias": "BBVA personal",
-    "lastSyncedAt": "2026-03-17T10:00:00Z",
-    "createdAt": "2026-03-10T08:00:00Z"
+    "providerName": "BBVA",
+    "status": "active",
+    "lastSync": "2026-03-17T10:00:00Z"
   }
 ]
 ```
@@ -77,27 +62,27 @@ curl --request GET \
 
 `POST /api/openfinance/connections`
 
-Links a new external bank account to the authenticated user's profile.
+Links a new Open Finance provider connection to the authenticated user's profile.
 
 ### Request body
 
-<ParamField body="institutionName" type="string" required>
-  Name of the external bank or financial institution.
+<ParamField body="providerName" type="string" required>
+  Name of the Open Finance provider, e.g., `"BBVA"`, `"Banamex"`.
 </ParamField>
 
-<ParamField body="externalAccountId" type="string" required>
-  Account identifier assigned by the external institution.
+<ParamField body="scopes" type="string" required>
+  Space-separated OAuth scopes to request from the provider, e.g., `"accounts transactions"`.
 </ParamField>
 
-<ParamField body="accountAlias" type="string">
-  Optional friendly name for this connection.
+<ParamField body="authToken" type="string" required>
+  Authorization token obtained from the provider's OAuth flow.
 </ParamField>
 
 ### Error responses
 
 | Status | Description |
 |--------|-------------|
-| `400`  | Validation error — missing or invalid fields. |
+| `400`  | Validation error — `providerName`, `scopes`, and `authToken` are all required. |
 | `401`  | Invalid or missing bearer token. |
 
 <CodeGroup>
@@ -108,9 +93,9 @@ curl --request POST \
   --header 'Authorization: Bearer <token>' \
   --header 'Content-Type: application/json' \
   --data '{
-  "institutionName": "BBVA",
-  "externalAccountId": "ext-123",
-  "accountAlias": "BBVA personal"
+  "providerName": "BBVA",
+  "scopes": "accounts transactions",
+  "authToken": "provider-oauth-token"
 }'
 ```
 
@@ -119,12 +104,9 @@ curl --request POST \
 ```json Response (201 Created)
 {
   "id": "conn-uuid",
-  "userId": "user-uuid",
-  "institutionName": "BBVA",
-  "externalAccountId": "ext-123",
-  "accountAlias": "BBVA personal",
-  "lastSyncedAt": null,
-  "createdAt": "2026-03-17T14:00:00Z"
+  "providerName": "BBVA",
+  "status": "pending",
+  "lastSync": "0001-01-01T00:00:00Z"
 }
 ```
 
@@ -136,7 +118,7 @@ curl --request POST \
 
 `DELETE /api/openfinance/connections/{id}`
 
-Removes an external bank connection. Associated product data is no longer accessible after deletion.
+Removes an Open Finance connection. Associated product data is no longer accessible after deletion.
 
 ### Path parameters
 
@@ -173,7 +155,7 @@ curl --request DELETE \
 
 `POST /api/openfinance/sync/{connectionId}`
 
-Triggers a pull of the latest balance and transaction data from the external institution. Returns an array of newly synced external products.
+Triggers a pull of the latest balance and product data from the Open Finance provider. Returns an array of newly synced external products.
 
 ### Path parameters
 

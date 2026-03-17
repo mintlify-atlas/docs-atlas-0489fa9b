@@ -8,36 +8,40 @@ description: "Get and update the user's data processing consent"
 </Warning>
 
 <Note>
-  Consent management aligns with **LFPDPPP** (Ley Federal de Protección de Datos Personales en Posesión de los Particulares — Mexico's Personal Data Protection Law). Users can revoke consent at any time. When `analyticsConsent` is `false`, analytics events are not stored.
+  Consent management aligns with **LFPDPPP** (Ley Federal de Protección de Datos Personales en Posesión de los Particulares — Mexico's Personal Data Protection Law). Users can revoke consent at any time.
 </Note>
 
 ## Endpoints
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/api/profile/consent` | Retrieve the user's current consent settings |
-| `PUT` | `/api/profile/consent` | Update the user's consent settings |
+| `GET` | `/api/profile/consent` | Retrieve the user's current consent records |
+| `PUT` | `/api/profile/consent` | Update the user's consent |
 
 ---
 
 ## GET /api/profile/consent
 
-Returns the current data processing consent settings for the authenticated user.
+Returns the current data processing consent records for the authenticated user. The response is an array — one record per consent type.
 
 ### Response
 
-#### 200 OK
+Returns an array of consent record objects.
 
-<ResponseField name="analyticsConsent" type="boolean" required>
-  Whether the user has consented to interaction analytics collection.
+<ResponseField name="id" type="string" required>
+  UUID of the consent record.
 </ResponseField>
 
-<ResponseField name="accessibilityDataConsent" type="boolean" required>
-  Whether the user has consented to processing of their accessibility profile data.
+<ResponseField name="type" type="string" required>
+  The type of consent this record represents, e.g., `"analytics"`, `"accessibility"`.
 </ResponseField>
 
-<ResponseField name="updatedAt" type="string" required>
-  ISO 8601 timestamp of the last consent update.
+<ResponseField name="granted" type="boolean" required>
+  Whether the user has granted this consent.
+</ResponseField>
+
+<ResponseField name="timestamp" type="string" required>
+  ISO 8601 timestamp of when this consent was last updated.
 </ResponseField>
 
 ### Example
@@ -50,11 +54,20 @@ curl -X GET http://localhost:5000/api/profile/consent \
 ```
 
 ```json Response
-{
-  "analyticsConsent": true,
-  "accessibilityDataConsent": true,
-  "updatedAt": "2026-03-01T10:00:00Z"
-}
+[
+  {
+    "id": "1a2b3c4d-0000-0000-0000-000000000001",
+    "type": "analytics",
+    "granted": true,
+    "timestamp": "2026-03-01T10:00:00Z"
+  },
+  {
+    "id": "1a2b3c4d-0000-0000-0000-000000000002",
+    "type": "accessibility",
+    "granted": true,
+    "timestamp": "2026-03-01T10:00:00Z"
+  }
+]
 ```
 
 </CodeGroup>
@@ -63,29 +76,25 @@ curl -X GET http://localhost:5000/api/profile/consent \
 
 ## PUT /api/profile/consent
 
-Updates the data processing consent settings for the authenticated user.
+Updates a consent record for the authenticated user.
 
 ### Request body
 
-<ParamField body="analyticsConsent" type="boolean">
-  Consent to collect interaction analytics. When set to `false`, analytics events are no longer stored.
-</ParamField>
-
-<ParamField body="accessibilityDataConsent" type="boolean">
-  Consent to process accessibility profile data for personalization.
+<ParamField body="granted" type="boolean" required>
+  Set to `true` to grant consent, or `false` to revoke it.
 </ParamField>
 
 ### Response
 
 #### 200 OK
 
-Returns the updated consent record with the same structure as the GET response.
+Returns the updated consent record with the same structure as a single item from the GET response array.
 
 #### Error responses
 
 | Status | Description |
 | --- | --- |
-| `400 Bad Request` | Validation error. |
+| `400 Bad Request` | Validation error — `granted` field is required. |
 | `401 Unauthorized` | Invalid or expired token. |
 
 ### Example
@@ -97,16 +106,16 @@ curl -X PUT http://localhost:5000/api/profile/consent \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "analyticsConsent": false,
-    "accessibilityDataConsent": true
+    "granted": false
   }'
 ```
 
 ```json Response
 {
-  "analyticsConsent": false,
-  "accessibilityDataConsent": true,
-  "updatedAt": "2026-03-18T09:30:00Z"
+  "id": "1a2b3c4d-0000-0000-0000-000000000001",
+  "type": "analytics",
+  "granted": false,
+  "timestamp": "2026-03-18T09:30:00Z"
 }
 ```
 

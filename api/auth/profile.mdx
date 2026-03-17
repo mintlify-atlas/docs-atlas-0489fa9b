@@ -28,20 +28,24 @@ Returns profile data for the currently authenticated user.
   UUID of the authenticated user.
 </ResponseField>
 
-<ResponseField name="email" type="string" required>
+<ResponseField name="alias" type="string" required>
+  Display name for the user (set during registration as `userName`).
+</ResponseField>
+
+<ResponseField name="email" type="string">
   User's registered email address.
 </ResponseField>
 
-<ResponseField name="firstName" type="string" required>
-  User's first name.
+<ResponseField name="phoneNumber" type="string">
+  User's phone number, if set.
 </ResponseField>
 
-<ResponseField name="lastName" type="string" required>
-  User's last name.
+<ResponseField name="preferredLanguage" type="string" required>
+  Preferred UI language, e.g., `"es-MX"`.
 </ResponseField>
 
-<ResponseField name="createdAt" type="string" required>
-  ISO 8601 timestamp of when the account was created.
+<ResponseField name="demoMode" type="boolean" required>
+  Whether the account is in demo/sandbox mode.
 </ResponseField>
 
 ### Example
@@ -56,10 +60,11 @@ curl -X GET http://localhost:5000/api/profile/me \
 ```json Response
 {
   "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "alias": "María González",
   "email": "maria@example.com",
-  "firstName": "María",
-  "lastName": "González",
-  "createdAt": "2026-03-01T10:00:00Z"
+  "phoneNumber": null,
+  "preferredLanguage": "es-MX",
+  "demoMode": false
 }
 ```
 
@@ -69,16 +74,20 @@ curl -X GET http://localhost:5000/api/profile/me \
 
 ## PUT /api/profile/me
 
-Updates the profile of the currently authenticated user. Only the provided fields are updated.
+Updates the profile of the currently authenticated user. Only provided fields are updated.
 
 ### Request body
 
-<ParamField body="firstName" type="string">
-  Updated first name.
+<ParamField body="email" type="string">
+  Updated email address. Must be a valid email format.
 </ParamField>
 
-<ParamField body="lastName" type="string">
-  Updated last name.
+<ParamField body="phoneNumber" type="string">
+  Updated phone number. Must be a valid phone format.
+</ParamField>
+
+<ParamField body="preferredLanguage" type="string">
+  Updated preferred UI language, e.g., `"es-MX"` or `"en-US"`.
 </ParamField>
 
 ### Response
@@ -91,7 +100,7 @@ Returns the updated user profile with the same structure as `GET /api/profile/me
 
 | Status | Description |
 | --- | --- |
-| `400 Bad Request` | Validation error. |
+| `400 Bad Request` | Validation error — invalid email or phone format. |
 | `401 Unauthorized` | Invalid or expired token. |
 
 ### Example
@@ -103,18 +112,20 @@ curl -X PUT http://localhost:5000/api/profile/me \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "firstName": "María",
-    "lastName": "López"
+    "email": "maria.lopez@example.com",
+    "phoneNumber": "+52 55 1234 5678",
+    "preferredLanguage": "es-MX"
   }'
 ```
 
 ```json Response
 {
   "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "email": "maria@example.com",
-  "firstName": "María",
-  "lastName": "López",
-  "createdAt": "2026-03-01T10:00:00Z"
+  "alias": "María González",
+  "email": "maria.lopez@example.com",
+  "phoneNumber": "+52 55 1234 5678",
+  "preferredLanguage": "es-MX",
+  "demoMode": false
 }
 ```
 

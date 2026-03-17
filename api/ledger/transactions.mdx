@@ -25,28 +25,28 @@ Returns all transactions for the authenticated user.
   Unique transaction identifier (UUID).
 </ResponseField>
 
-<ResponseField name="sourceAccountId" type="string" required>
+<ResponseField name="fromAccountId" type="string" required>
   UUID of the sender's account.
 </ResponseField>
 
-<ResponseField name="destinationClabe" type="string" required>
-  18-digit CLABE of the recipient account.
+<ResponseField name="toBeneficiaryId" type="string" required>
+  UUID of the beneficiary who received the transfer.
+</ResponseField>
+
+<ResponseField name="beneficiaryName" type="string" required>
+  Full name of the beneficiary at the time of the transaction.
 </ResponseField>
 
 <ResponseField name="amount" type="number" required>
-  Transfer amount in MXN.
-</ResponseField>
-
-<ResponseField name="concept" type="string">
-  Transfer concept or description (max 40 characters, SPEI standard).
+  Transfer amount. Must be greater than zero.
 </ResponseField>
 
 <ResponseField name="status" type="string" required>
   Current transaction status, e.g., `"completed"`, `"pending"`, `"failed"`.
 </ResponseField>
 
-<ResponseField name="riskLevel" type="string" required>
-  Risk level assigned at submission time: `"low"`, `"medium"`, or `"high"`.
+<ResponseField name="speiReference" type="string">
+  SPEI tracking reference number, if available.
 </ResponseField>
 
 <ResponseField name="createdAt" type="string" required>
@@ -67,12 +67,12 @@ curl --request GET \
 [
   {
     "id": "txn-uuid",
-    "sourceAccountId": "account-uuid",
-    "destinationClabe": "646180123456789012",
+    "fromAccountId": "account-uuid",
+    "toBeneficiaryId": "ben-uuid",
+    "beneficiaryName": "Juan Pérez",
     "amount": 500.00,
-    "concept": "Renta",
     "status": "completed",
-    "riskLevel": "low",
+    "speiReference": "SPEI20260317001",
     "createdAt": "2026-03-17T14:30:00Z"
   }
 ]
@@ -86,39 +86,31 @@ curl --request GET \
 
 `POST /api/ledger/transactions`
 
-Creates a new SPEI transfer. The transfer is debited from the specified source account and sent to the destination CLABE.
+Creates a new SPEI transfer from the authenticated user's account to a saved beneficiary.
 
 <Tip>
-  Call [`POST /ai/risk`](/api/ai/risk) before this endpoint and present a confirmation dialog to the user when the risk level is `medium` or `high`.
+  Call [`POST /ai/risk`](/api/ai/risk) before this endpoint and present a confirmation dialog to the user when the risk level is `medium` or `high`. The transfer requires a beneficiary to be saved first — use [`POST /api/ledger/beneficiaries`](/api/ledger/beneficiaries) to add one.
 </Tip>
 
 ### Request body
 
-<ParamField body="sourceAccountId" type="string" required>
+<ParamField body="fromAccountId" type="string" required>
   UUID of the account to debit.
 </ParamField>
 
-<ParamField body="destinationClabe" type="string" required>
-  18-digit CLABE of the recipient. Must be a valid Mexican interbank CLABE.
+<ParamField body="toBeneficiaryId" type="string" required>
+  UUID of the saved beneficiary to credit. The beneficiary must already exist — see [Beneficiaries](/api/ledger/beneficiaries).
 </ParamField>
 
 <ParamField body="amount" type="number" required>
-  Transfer amount in MXN. Must be greater than zero and not exceed the source account balance.
-</ParamField>
-
-<ParamField body="concept" type="string">
-  Transfer concept or description. Maximum 40 characters (SPEI standard).
-</ParamField>
-
-<ParamField body="beneficiaryId" type="string">
-  UUID of a saved beneficiary. If provided, the transfer is linked to that beneficiary record.
+  Transfer amount. Must be greater than zero (`0.01` minimum).
 </ParamField>
 
 ### Error responses
 
 | Status | Description |
 |--------|-------------|
-| `400`  | Insufficient funds or validation error. |
+| `400`  | Insufficient funds, missing fields, or invalid amount. |
 | `401`  | Invalid or missing bearer token. |
 
 <CodeGroup>
@@ -129,24 +121,23 @@ curl --request POST \
   --header 'Authorization: Bearer <token>' \
   --header 'Content-Type: application/json' \
   --data '{
-  "sourceAccountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "destinationClabe": "646180123456789012",
-  "amount": 500.00,
-  "concept": "Renta"
+  "fromAccountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "toBeneficiaryId": "ben-uuid",
+  "amount": 500.00
 }'
 ```
 
 </CodeGroup>
 
-```json Response (201 Created)
+```json Response (200 OK)
 {
   "id": "txn-uuid",
-  "sourceAccountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "destinationClabe": "646180123456789012",
+  "fromAccountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "toBeneficiaryId": "ben-uuid",
+  "beneficiaryName": "Juan Pérez",
   "amount": 500.00,
-  "concept": "Renta",
   "status": "completed",
-  "riskLevel": "low",
+  "speiReference": "SPEI20260317001",
   "createdAt": "2026-03-17T14:30:00Z"
 }
 ```

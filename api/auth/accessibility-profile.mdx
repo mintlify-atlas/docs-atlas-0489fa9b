@@ -8,7 +8,7 @@ description: "Get and update the user's accessibility preferences"
 </Warning>
 
 <Note>
-  This profile can be auto-populated by the AI accessibility model during the onboarding wizard, then manually overridden in Preferences.
+  This profile can be auto-populated by the AI accessibility model during the onboarding wizard, then manually overridden in Preferences. See [Accessibility Recommendation](/api/ai/accessibility) for the AI endpoint.
 </Note>
 
 ## Endpoints
@@ -28,24 +28,36 @@ Returns the current accessibility preferences for the authenticated user.
 
 #### 200 OK
 
+<ResponseField name="alias" type="string">
+  Optional accessibility alias or label for the profile.
+</ResponseField>
+
+<ResponseField name="ageRange" type="string">
+  User's age range, e.g., `"18_30"`, `"31_50"`, `"51_60"`, `"60_plus"`.
+</ResponseField>
+
+<ResponseField name="literacyLevel" type="string">
+  User's self-reported digital literacy level, e.g., `"low"`, `"medium"`, `"high"`.
+</ResponseField>
+
 <ResponseField name="theme" type="string" required>
-  Active visual theme. One of `standard-accessible`, `large-text-high-contrast`, or `voice-assisted`.
+  Active visual theme. Default: `"light"`. Common values set by the AI model: `"standard-accessible"`, `"large-text-high-contrast"`, `"voice-assisted"`.
 </ResponseField>
 
 <ResponseField name="screenReaderMode" type="boolean" required>
-  Whether screen reader mode is enabled.
+  Whether screen reader mode is enabled. Default: `false`.
 </ResponseField>
 
 <ResponseField name="fontScale" type="number" required>
-  Font scale multiplier currently applied (e.g., `1.0`, `1.2`, `1.6`).
+  Font scale multiplier currently applied. Range: 0.5–3.0. Default: `1.0`.
 </ResponseField>
 
 <ResponseField name="nudgingLevel" type="string" required>
-  Guidance nudging intensity. One of `low`, `medium`, or `high`.
+  Guidance nudging intensity. One of `"low"`, `"medium"`, or `"high"`. Default: `"medium"`.
 </ResponseField>
 
 <ResponseField name="voiceFeedback" type="boolean" required>
-  Whether voice feedback is enabled.
+  Whether voice feedback is enabled. Default: `false`.
 </ResponseField>
 
 ### Example
@@ -59,6 +71,9 @@ curl -X GET http://localhost:5000/api/profile/accessibility \
 
 ```json Response
 {
+  "alias": null,
+  "ageRange": "60_plus",
+  "literacyLevel": "low",
   "theme": "large-text-high-contrast",
   "screenReaderMode": false,
   "fontScale": 1.6,
@@ -73,32 +88,40 @@ curl -X GET http://localhost:5000/api/profile/accessibility \
 
 ## PUT /api/profile/accessibility
 
-Updates the accessibility preferences for the authenticated user. Only provided fields are updated.
+Updates the accessibility preferences for the authenticated user.
 
 ### Request body
 
-<ParamField body="theme" type="string">
-  Visual theme to apply. Accepted values:
-
-  - `standard-accessible`
-  - `large-text-high-contrast`
-  - `voice-assisted`
+<ParamField body="theme" type="string" required>
+  Visual theme to apply. The `theme` field is required. Common values: `"light"`, `"standard-accessible"`, `"large-text-high-contrast"`, `"voice-assisted"`.
 </ParamField>
 
-<ParamField body="screenReaderMode" type="boolean">
+<ParamField body="screenReaderMode" type="boolean" required>
   Enable or disable screen reader mode.
 </ParamField>
 
-<ParamField body="fontScale" type="number">
-  Font scale multiplier (e.g., `1.2` or `1.6`).
+<ParamField body="fontScale" type="number" required>
+  Font scale multiplier. Must be between `0.5` and `3.0`. Default: `1.0`.
 </ParamField>
 
-<ParamField body="nudgingLevel" type="string">
-  Guidance nudging intensity. Accepted values: `low`, `medium`, `high`.
+<ParamField body="nudgingLevel" type="string" required>
+  Guidance nudging intensity. Accepted values: `"low"`, `"medium"`, `"high"`. Default: `"medium"`.
 </ParamField>
 
-<ParamField body="voiceFeedback" type="boolean">
+<ParamField body="voiceFeedback" type="boolean" required>
   Enable or disable voice feedback.
+</ParamField>
+
+<ParamField body="alias" type="string">
+  Optional label for this accessibility configuration. Maximum 100 characters.
+</ParamField>
+
+<ParamField body="ageRange" type="string">
+  User's age range. Maximum 50 characters.
+</ParamField>
+
+<ParamField body="literacyLevel" type="string">
+  User's digital literacy level. Maximum 50 characters.
 </ParamField>
 
 ### Response
@@ -111,7 +134,7 @@ Returns the updated accessibility profile with the same structure as the GET res
 
 | Status | Description |
 | --- | --- |
-| `400 Bad Request` | Validation error (e.g., unrecognized theme value). |
+| `400 Bad Request` | Validation error — `fontScale` out of range (must be 0.5–3.0) or missing required fields. |
 | `401 Unauthorized` | Invalid or expired token. |
 
 ### Example
@@ -133,6 +156,9 @@ curl -X PUT http://localhost:5000/api/profile/accessibility \
 
 ```json Response
 {
+  "alias": null,
+  "ageRange": null,
+  "literacyLevel": null,
   "theme": "large-text-high-contrast",
   "screenReaderMode": false,
   "fontScale": 1.6,

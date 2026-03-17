@@ -11,13 +11,13 @@ The ledger system manages bank accounts, beneficiaries, and SPEI transfers. All 
 
 ## Accounts
 
-Each user can hold one or more bank accounts. Every account has a unique CLABE (Clave Bancaria Estandarizada) number used for incoming SPEI transfers.
+Each user can hold one or more bank accounts. Accounts are identified by their `accountNumber` field, which can be a CLABE (Clave Bancaria Estandarizada) for incoming SPEI transfers.
 
 <Columns cols={2}>
   <Card title="Create account" icon="plus-circle">
     `POST /api/ledger/accounts`
 
-    Creates a new bank account for the authenticated user. Returns the new account object including the generated CLABE number.
+    Creates a new bank account for the authenticated user using a provided account number and type.
   </Card>
   <Card title="List accounts" icon="list">
     `GET /api/ledger/accounts`
@@ -31,9 +31,10 @@ Example account object:
 ```json
 {
   "id": "acc_001",
-  "user_id": "usr_xyz",
-  "account_number": "646180157000000001",
-  "balance": 12500.00
+  "accountNumber": "646180157000000001",
+  "accountType": "DEFAULT",
+  "balance": 12500.00,
+  "currency": "MXN"
 }
 ```
 
@@ -47,7 +48,7 @@ Beneficiaries are trusted recipients saved by the user. Adding a beneficiary bef
   <Card title="Add beneficiary" icon="user-plus">
     `POST /api/ledger/beneficiaries`
 
-    Saves a new recipient with their name and CLABE number.
+    Saves a new recipient with their name, account number, and bank name.
   </Card>
   <Card title="List beneficiaries" icon="users">
     `GET /api/ledger/beneficiaries`
@@ -66,9 +67,11 @@ Example beneficiary object:
 ```json
 {
   "id": "ben_042",
-  "user_id": "usr_xyz",
   "name": "María López",
-  "clabe": "646180157000000099"
+  "alias": "María",
+  "accountNumber": "646180157000000099",
+  "bankName": "BBVA",
+  "isFavorite": false
 }
 ```
 
@@ -94,11 +97,13 @@ Example transaction object:
 ```json
 {
   "id": "txn_789",
-  "sender_account_id": "acc_001",
-  "recipient_clabe": "646180157000000099",
+  "fromAccountId": "acc_001",
+  "toBeneficiaryId": "ben_042",
+  "beneficiaryName": "María López",
   "amount": 3000.00,
-  "timestamp": "2026-03-17T14:32:00Z",
-  "status": "completed"
+  "status": "completed",
+  "speiReference": "SPEI20260317001",
+  "createdAt": "2026-03-17T14:32:00Z"
 }
 ```
 
@@ -111,7 +116,7 @@ Example transaction object:
     The user opens `TransferView` (the Send Money screen).
   </Step>
   <Step title="Select or add a beneficiary">
-    The user picks a recipient from their saved beneficiary list, or adds a new beneficiary inline by entering a CLABE number and name.
+    The user picks a recipient from their saved beneficiary list, or adds a new beneficiary by entering a name, account number, and bank name.
   </Step>
   <Step title="Enter amount">
     The user types the transfer amount. Basic validation (positive number, sufficient balance) runs client-side.
@@ -147,8 +152,8 @@ Example transaction object:
 
     ```json
     {
-      "sender_account_id": "acc_001",
-      "recipient_clabe": "646180157000000099",
+      "fromAccountId": "acc_001",
+      "toBeneficiaryId": "ben_042",
       "amount": 3000.00
     }
     ```

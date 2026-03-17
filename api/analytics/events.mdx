@@ -12,7 +12,7 @@ description: "Log user interaction events for accessibility impact tracking"
 Records a user interaction event. Used internally to measure the impact of accessibility features — tracking how often accessibility modes are used, where users encounter difficulty, and how nudging affects flow completion rates.
 
 <Note>
-  Events are only stored if the user has `analyticsConsent: true` in their consent profile. If consent has not been granted, the event is silently discarded.
+  Events are only stored if the user has granted analytics consent. See [Consent Management](/api/auth/consent) to check or update consent.
 </Note>
 
 <Info>
@@ -21,8 +21,12 @@ Records a user interaction event. Used internally to measure the impact of acces
 
 ### Request body
 
+<ParamField body="screen" type="string" required>
+  Name of the screen where the event occurred, e.g., `"send-money"`, `"login"`, `"transfer-confirm"`.
+</ParamField>
+
 <ParamField body="eventType" type="string" required>
-  Type of interaction event. Common values:
+  Type of interaction event. Examples:
   - `"screen_view"` — user navigated to a screen
   - `"nudge_accepted"` — user accepted a nudge prompt
   - `"nudge_dismissed"` — user dismissed a nudge prompt
@@ -30,27 +34,19 @@ Records a user interaction event. Used internally to measure the impact of acces
   - `"transfer_completed"` — user completed a SPEI transfer
 </ParamField>
 
-<ParamField body="screenName" type="string">
-  Name of the screen where the event occurred, e.g., `"send-money"`, `"login"`.
-</ParamField>
-
-<ParamField body="metadata" type="object">
-  Additional event data as key-value pairs. Use this to attach context-specific information such as the selected theme name or nudge type.
-</ParamField>
-
-<ParamField body="sessionId" type="string">
-  Identifier for the current user session. Used to correlate a sequence of events.
+<ParamField body="details" type="string">
+  Optional additional details about the event as a free-form string.
 </ParamField>
 
 ### Response
 
-Returns `202 Accepted`. The event is queued for asynchronous processing and is not immediately persisted.
+Returns `202 Accepted`. The event is queued for asynchronous processing.
 
 ### Error responses
 
 | Status | Description |
 |--------|-------------|
-| `400`  | Validation error — missing or invalid `eventType`. |
+| `400`  | Validation error — `screen` and `eventType` are required. |
 | `401`  | Invalid or missing bearer token. |
 
 <CodeGroup>
@@ -61,9 +57,8 @@ curl --request POST \
   --header 'Authorization: Bearer <token>' \
   --header 'Content-Type: application/json' \
   --data '{
-  "eventType": "screen_view",
-  "screenName": "send-money",
-  "sessionId": "session-456"
+  "screen": "send-money",
+  "eventType": "screen_view"
 }'
 ```
 
@@ -73,13 +68,9 @@ curl --request POST \
   --header 'Authorization: Bearer <token>' \
   --header 'Content-Type: application/json' \
   --data '{
+  "screen": "send-money",
   "eventType": "nudge_accepted",
-  "screenName": "send-money",
-  "sessionId": "session-456",
-  "metadata": {
-    "nudge_type": "assist",
-    "difficulty_score": 0.82
-  }
+  "details": "nudge_type=assist difficulty_score=0.82"
 }'
 ```
 
@@ -89,13 +80,9 @@ curl --request POST \
   --header 'Authorization: Bearer <token>' \
   --header 'Content-Type: application/json' \
   --data '{
+  "screen": "preferences",
   "eventType": "theme_changed",
-  "screenName": "settings",
-  "sessionId": "session-456",
-  "metadata": {
-    "previous_theme": "standard-accessible",
-    "new_theme": "large-text-high-contrast"
-  }
+  "details": "from=standard-accessible to=large-text-high-contrast"
 }'
 ```
 

@@ -12,12 +12,13 @@ The Open Finance feature lets users connect their accounts at other financial in
     Open the **Accounts** view (`AccountsView`). A list of your current B-Accesible accounts is shown. At the bottom, tap **Connect external bank**.
   </Step>
   <Step title="Fill in connection details">
-    Enter the name or institution identifier of the bank you want to connect. The form maps to the `CreateConnectionDto` schema.
+    Enter the provider details to connect. The form maps to the `CreateConnectionDto` schema.
 
     ```json
     {
-      "bank_name": "Banco Nacional",
-      "institution_id": "banco-nacional"
+      "providerName": "Banco Nacional",
+      "scopes": "accounts transactions",
+      "authToken": "provider-oauth-token"
     }
     ```
   </Step>
@@ -27,10 +28,9 @@ The Open Finance feature lets users connect their accounts at other financial in
     ```json
     {
       "id": "conn_abc123",
-      "user_id": "usr_xyz",
-      "bank_name": "Banco Nacional",
-      "institution_id": "banco-nacional",
-      "created_at": "2026-03-17T10:00:00Z"
+      "providerName": "Banco Nacional",
+      "status": "pending",
+      "lastSync": "0001-01-01T00:00:00Z"
     }
     ```
   </Step>
@@ -61,7 +61,7 @@ The Open Finance feature lets users connect their accounts at other financial in
   <Card title="Create connection" icon="plus-circle">
     `POST /api/openfinance/connections`
 
-    Creates a new connection to an external bank. Requires a bank name and institution identifier.
+    Creates a new connection to an Open Finance provider. Requires `providerName`, `scopes`, and `authToken`.
   </Card>
   <Card title="Delete connection" icon="trash-2">
     `DELETE /api/openfinance/connections/{id}`

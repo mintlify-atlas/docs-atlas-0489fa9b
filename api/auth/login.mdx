@@ -29,12 +29,8 @@ No authentication required. Returns a signed JWT token to use in all protected r
   Signed JWT for authenticating subsequent requests.
 </ResponseField>
 
-<ResponseField name="expiresAt" type="string" required>
-  ISO 8601 timestamp indicating when the token expires.
-</ResponseField>
-
-<ResponseField name="userId" type="string" required>
-  UUID of the authenticated user.
+<ResponseField name="expiresIn" type="integer" required>
+  Token lifetime in seconds.
 </ResponseField>
 
 ### Error responses
@@ -74,8 +70,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 ```json Response
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expiresAt": "2026-03-18T00:00:00Z",
-  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  "expiresIn": 3600
 }
 ```
 
