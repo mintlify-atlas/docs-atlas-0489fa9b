@@ -1,0 +1,90 @@
+---
+title: "Introduction"
+description: "B-Accesible — accessible digital banking powered by responsible AI, designed for everyone."
+---
+
+# B-Accesible
+
+<img
+  src="https://media.brand.dev/b529e43d-90dc-4c6e-97b6-b4ee3142264e.png"
+  alt="B-Accesible Logo"
+  style={{ width: "200px", marginBottom: "24px" }}
+/>
+
+> *"La banca que te acompaña. Tecnología que te entiende."*
+> *"Banking that accompanies you. Technology that understands you."*
+
+**B-Accesible** is a proof-of-concept (PoC) for inclusive digital banking designed for **everyone** — especially people with low digital literacy and visual, auditory, or cognitive disabilities.
+
+It integrates **responsible artificial intelligence**, easy-read language, natural voice in Mexican Spanish, and adaptive assistance modes to create a safe, comprehensible, and human banking experience.
+
+---
+
+## Why B-Accesible?
+
+In Mexico, over **50% of the adult population lacks access to formal financial services**, and nearly **40% has low digital or functional literacy**. B-Accesible addresses this gap by making digital banking:
+
+- **Accessible** — WCAG 2.1 AA compliant, with screen reader support, large text, high contrast, and voice navigation
+- **Adaptive** — AI automatically detects user needs and adjusts the interface accordingly
+- **Safe** — Real-time fraud and risk detection with transparent, explainable alerts
+- **Inclusive** — Designed for older adults, people with disabilities, and people with limited tech experience
+
+---
+
+## Core capabilities
+
+<CardGroup cols={2}>
+  <Card title="Adaptive accessibility" icon="universal-access" href="/features/accessibility">
+    AI-powered accessibility profiling automatically configures the interface — screen reader mode, large text, high contrast, or voice feedback — based on user needs.
+  </Card>
+  <Card title="AI nudging engine" icon="brain" href="/features/ai-nudging">
+    Detects when users struggle on a screen and offers contextual, non-intrusive guidance — respecting user autonomy at every step.
+  </Card>
+  <Card title="Fraud risk detection" icon="shield-halved" href="/features/risk-detection">
+    Scores every transaction in real time using explainable risk factors like unusual amounts, new beneficiaries, and location changes.
+  </Card>
+  <Card title="SPEI transfers & ledger" icon="money-bill-transfer" href="/features/transactions">
+    Full SPEI-based money transfers, account management, beneficiary management, and transaction history.
+  </Card>
+  <Card title="Open Finance" icon="link" href="/features/open-finance">
+    Connect and sync external bank accounts through the Open Finance integration layer.
+  </Card>
+  <Card title="Microservices architecture" icon="server" href="/architecture">
+    Built on .NET microservices with an Ocelot API Gateway, JWT authentication, and a FastAPI AI service.
+  </Card>
+</CardGroup>
+
+---
+
+## Technology stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, TailwindCSS, Framer Motion |
+| API Gateway | Ocelot (.NET) |
+| Auth & Profile | ASP.NET Core Web API |
+| Ledger | ASP.NET Core Web API |
+| Open Finance | ASP.NET Core Web API |
+| Analytics | ASP.NET Core Web API |
+| AI Service | Python, FastAPI, scikit-learn |
+| Database | SQL Server 2022 |
+| Container | Docker Compose |
+
+---
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Clone the repo, configure environment variables, and run the full stack with Docker Compose in minutes.
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/architecture">
+    Understand how the microservices connect, the API Gateway routes, and how the AI service integrates.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth/register">
+    Explore all REST endpoints for authentication, ledger, AI, and open finance.
+  </Card>
+  <Card title="Ethics & AI" icon="scale-balanced" href="/ethics/ai-ethics">
+    Read the ethical principles, privacy design, and responsible AI methodology behind B-Accesible.
+  </Card>
+</CardGroup>

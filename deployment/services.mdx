@@ -1,0 +1,401 @@
+---
+title: Services reference
+description: Detailed reference for every microservice in the B-Accesible backend stack.
+---
+
+B-Accesible is composed of six backend services. Five run as Docker containers managed by Docker Compose. The AI Service runs as a standalone Python process.
+
+## Services overview
+
+<Columns cols={3}>
+  <Card title="OcelotGateway" icon="network-wired" href="#ocelotgateway">
+    API Gateway. Routes all client requests to downstream services and validates JWT tokens.
+  </Card>
+  <Card title="AuthService" icon="lock" href="#authservice">
+    User registration, login, JWT issuance, accessibility profiles, and GDPR consent.
+  </Card>
+  <Card title="LedgerService" icon="building-columns" href="#ledgerservice">
+    SPEI-based bank accounts, transactions, and beneficiary management.
+  </Card>
+  <Card title="OpenFinanceService" icon="arrow-right-arrow-left" href="#openfinanceservice">
+    Connections to external banks and syncing of external financial products.
+  </Card>
+  <Card title="AnalyticsService" icon="chart-bar" href="#analyticsservice">
+    Receives and stores user interaction events for accessibility impact measurement.
+  </Card>
+  <Card title="AI Service" icon="brain" href="#ai-service">
+    Python FastAPI service running nudging, accessibility profiling, and risk scoring models.
+  </Card>
+</Columns>
+
+---
+
+## OcelotGateway
+
+**Container:** `hackathon-gateway`  
+**External port:** `5000` → internal `8080`
+
+The API Gateway is the single entry point for all client requests. It uses the [Ocelot](https://ocelot.readthedocs.io/) library for .NET to route requests to the correct downstream service based on path prefixes defined in `ocelot.json`. JWT tokens are validated at the gateway before any request is forwarded.
+
+<AccordionGroup>
+
+<Accordion title="Routing configuration">
+
+Routes are defined in `OcelotGateway/ocelot.json`. Each route entry maps an upstream path template to a downstream service host and port.
+
+```json ocelot.json (excerpt)
+{
+  "Routes": [
+    {
+      "UpstreamPathTemplate": "/api/auth/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/auth/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "authprofileservice", "Port": 8080 }
+      ]
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:5000"
+  }
+}
+```
+
+</Accordion>
+
+<Accordion title="JWT validation">
+
+The gateway validates Bearer tokens on all protected routes. Tokens must be signed with `JWT_SECRET_KEY`, have issuer `https://api.backendAuth.com`, and audience `https://app.backendAuth.com`.
+
+Public routes (registration, login) pass through without validation.
+
+</Accordion>
+
+<Accordion title="Running the gateway">
+
+The gateway starts automatically with Docker Compose. To rebuild and restart only the gateway:
+
+```bash
+docker compose up --build -d ocelot-gateway
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## AuthService
+
+**Container:** `hackathon-auth`  
+**Database:** `auth_db`
+
+Handles all identity and profile operations: user registration, login, JWT token issuance, accessibility profile management, and GDPR consent recording.
+
+<AccordionGroup>
+
+<Accordion title="Controllers">
+
+| Controller | Base path | Responsibilities |
+|------------|-----------|------------------|
+| `AuthController` | `/api/auth` | Register, login, token refresh |
+| `ProfileController` | `/api/profile` | Read and update user profile, accessibility settings, GDPR consent |
+
+</Accordion>
+
+<Accordion title="Key endpoints">
+
+| Method | Path | Auth required | Description |
+|--------|------|---------------|-------------|
+| `POST` | `/api/auth/register` | No | Create a new user account |
+| `POST` | `/api/auth/login` | No | Authenticate and receive a JWT |
+| `GET` | `/api/profile` | Yes | Retrieve the authenticated user's profile |
+| `PUT` | `/api/profile/accessibility` | Yes | Update accessibility preferences |
+
+</Accordion>
+
+<Accordion title="Running AuthService">
+
+<CodeGroup>
+
+```bash Via Docker Compose
+docker compose up --build -d authprofileservice
+```
+
+```bash Logs
+docker compose logs -f authprofileservice
+```
+
+</CodeGroup>
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## LedgerService
+
+**Container:** `hackathon-ledger`  
+**Database:** `ledger_db`
+
+Manages SPEI-compatible bank accounts, processes transactions between accounts, and handles beneficiary lists. All endpoints require a valid JWT.
+
+<AccordionGroup>
+
+<Accordion title="Controller">
+
+| Controller | Base path | Responsibilities |
+|------------|-----------|------------------|
+| `LedgerController` | `/api/ledger` | Account management, SPEI transfers, beneficiary CRUD |
+
+</Accordion>
+
+<Accordion title="Key endpoints">
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/ledger/account` | Get the authenticated user's account and balance |
+| `POST` | `/api/ledger/transfer` | Initiate a SPEI transfer |
+| `GET` | `/api/ledger/transactions` | List transaction history |
+| `POST` | `/api/ledger/beneficiaries` | Add a beneficiary |
+| `GET` | `/api/ledger/beneficiaries` | List beneficiaries |
+
+</Accordion>
+
+<Accordion title="Running LedgerService">
+
+<CodeGroup>
+
+```bash Via Docker Compose
+docker compose up --build -d ledgerservice
+```
+
+```bash Logs
+docker compose logs -f ledgerservice
+```
+
+</CodeGroup>
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## OpenFinanceService
+
+**Container:** `hackathon-openfinance`  
+**Database:** `openfinance_db`
+
+Allows users to link external bank accounts and syncs their external financial products into the B-Accesible platform. All endpoints require a valid JWT.
+
+<AccordionGroup>
+
+<Accordion title="Controller">
+
+| Controller | Base path | Responsibilities |
+|------------|-----------|------------------|
+| `OpenFinanceController` | `/api/openfinance` | Manage external bank connections and sync financial products |
+
+</Accordion>
+
+<Accordion title="Key endpoints">
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/openfinance/connect` | Link an external bank account |
+| `GET` | `/api/openfinance/connections` | List active external connections |
+| `POST` | `/api/openfinance/sync` | Sync financial products from connected banks |
+
+</Accordion>
+
+<Accordion title="Running OpenFinanceService">
+
+<CodeGroup>
+
+```bash Via Docker Compose
+docker compose up --build -d openfinanceservice
+```
+
+```bash Logs
+docker compose logs -f openfinanceservice
+```
+
+</CodeGroup>
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## AnalyticsService
+
+**Container:** `hackathon-analytics`  
+**External port:** `7002` → internal `8080`  
+**Database:** `analytics_db`
+
+Receives user interaction events from the frontend and stores them for analysis. Used to measure how accessibility features affect user behaviour and task completion rates.
+
+<AccordionGroup>
+
+<Accordion title="Controller">
+
+| Controller | Base path | Responsibilities |
+|------------|-----------|------------------|
+| `AnalyticsController` | `/api/analytics` | Ingest interaction events, query aggregated metrics |
+
+</Accordion>
+
+<Accordion title="Why it has a direct port">
+
+The Analytics Service is exposed on port `7002` in addition to being reachable through the gateway. This allows the frontend to fire-and-forget event payloads directly without adding latency to the gateway pipeline.
+
+</Accordion>
+
+<Accordion title="Running AnalyticsService">
+
+<CodeGroup>
+
+```bash Via Docker Compose
+docker compose up --build -d analyticsservice
+```
+
+```bash Logs
+docker compose logs -f analyticsservice
+```
+
+</CodeGroup>
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## AI Service
+
+**Port:** `8001`  
+**Runtime:** Python 3.11+ / FastAPI / uvicorn  
+**Not included in Docker Compose — run separately**
+
+A standalone Python service that exposes three machine-learning endpoints. Models are scikit-learn Decision Trees trained on synthetic data and serialized as `.pkl` files.
+
+<AccordionGroup>
+
+<Accordion title="Routes">
+
+| Method | Path | Model | Description |
+|--------|------|-------|-------------|
+| `POST` | `/ai/nudge` | `nudging_model.pkl` | Recommends financial nudges based on user behaviour |
+| `POST` | `/ai/accessibility` | `accessibility_model.pkl` | Infers an accessibility profile from interaction patterns |
+| `POST` | `/ai/risk` | `risk_model.pkl` | Scores transaction risk |
+| `GET` | `/ai/health` | — | Liveness check — returns `200 OK` when all models are loaded |
+
+</Accordion>
+
+<Accordion title="Model files">
+
+Model files must be present before starting the service:
+
+```
+backend/ai_service/models/
+├── nudging_model.pkl
+├── accessibility_model.pkl
+└── risk_model.pkl
+```
+
+If any model file is missing, the service will raise an error on startup.
+
+</Accordion>
+
+<Accordion title="Starting the AI Service">
+
+<CodeGroup>
+
+```bash Start with uvicorn
+cd backend/ai_service
+uvicorn serviceapi:app --host 0.0.0.0 --port 8001 --reload
+```
+
+```bash Install dependencies first
+cd backend/ai_service
+pip install -r requirements.txt
+```
+
+</CodeGroup>
+
+<Tip>
+Use `--reload` during development so the server restarts automatically when you edit `serviceapi.py`.
+</Tip>
+
+CORS is configured to allow requests from `http://localhost:5173` (the Vite dev server) only.
+
+</Accordion>
+
+<Accordion title="Health check">
+
+```bash
+curl http://localhost:8001/ai/health
+```
+
+Expected response when all three models are loaded:
+
+```json
+{ "status": "ok", "models_loaded": 3 }
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## SQL Server 2022
+
+**Container:** `hackathon-sql-server`  
+**Port:** `1433`  
+**Volume:** `sql-server-data` (persistent across restarts)
+
+A single SQL Server 2022 instance hosts four separate databases, one per service.
+
+| Database | Owner service |
+|----------|---------------|
+| `auth_db` | AuthService |
+| `ledger_db` | LedgerService |
+| `openfinance_db` | OpenFinanceService |
+| `analytics_db` | AnalyticsService |
+
+<AccordionGroup>
+
+<Accordion title="Connecting with a SQL client">
+
+You can connect to SQL Server directly for inspection or debugging:
+
+| Setting | Value |
+|---------|-------|
+| Host | `localhost` |
+| Port | `1433` |
+| Username | `sa` |
+| Password | `123SPEI` (default in docker-compose.yml) |
+| Authentication | SQL Server Authentication |
+
+</Accordion>
+
+<Accordion title="Persisting data">
+
+Data is stored in the `sql-server-data` Docker volume and survives container restarts. To completely reset all databases, remove the volume:
+
+```bash
+docker compose down -v
+```
+
+<Warning>
+This permanently deletes all data in all four databases.
+</Warning>
+
+</Accordion>
+
+</AccordionGroup>

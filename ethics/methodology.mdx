@@ -1,0 +1,261 @@
+---
+title: "Methodology"
+description: "Human-Centered Design process, Clean Architecture, AI model details, and evaluation methodology for B-Accesible."
+---
+
+B-Accesible is a proof-of-concept demonstrating how a banking app can adapt to people with low digital literacy, disability, or vulnerability — integrating ethical AI and universal accessibility principles throughout every layer of the system.
+
+The project follows a **Human-Centered Design (HCD)** methodology combined with an ethical AI framework built on transparency, autonomy, and justice.
+
+---
+
+## Design process
+
+<Steps>
+  <Step title="Empathy">
+    The process began by building representative user profiles grounded in scientific studies and official national reports — not assumptions.
+
+    Three personas were created to guide all subsequent design decisions:
+
+    - **María** — older adult with low vision, limited smartphone experience, lives in a semi-urban area
+    - **José** — rural user with limited digital experience, primary language is an indigenous language, occasional access to connectivity
+    - **Laura** — user with a cognitive disability, benefits from consistent layout, clear language, and predictable interactions
+
+    These personas informed every interface decision: font size defaults, vocabulary level, navigation depth, and the conditions under which the nudging system activates.
+  </Step>
+
+  <Step title="Design">
+    An interface prototype was developed with three core commitments:
+
+    - **Easy-read content** — plain language, short sentences, active voice, visual support for key concepts
+    - **High contrast and legible typography** — tested across multiple contrast themes to meet WCAG 2.1 AA
+    - **Clear language** — financial terms explained in context, avoiding jargon; spoken examples via TTS in Mexican Spanish
+
+    Culturally relevant iconography was chosen deliberately — symbols familiar in everyday Mexican life, not borrowed from North American or European banking interfaces.
+  </Step>
+
+  <Step title="Implementation">
+    The system is built on **Clean Architecture** principles, separating concerns across four layers: UI, Domain, Application, and Infrastructure. This separation ensures that accessibility logic, AI models, and business rules can be tested and modified independently.
+
+    See the [architecture overview](/architecture) for the full service map and API Gateway configuration.
+  </Step>
+
+  <Step title="Evaluation">
+    Each component was evaluated against multiple criteria:
+
+    - **Usability testing** — task completion rates with simulated user scenarios
+    - **Accessibility audit** — WCAG AA compliance verified with axe DevTools
+    - **Screen reader testing** — VoiceOver tested across key user flows
+    - **Ethical nudging evaluation** — nudge triggers reviewed for appropriateness, tone, and autonomy preservation
+  </Step>
+</Steps>
+
+---
+
+## Architecture
+
+B-Accesible uses a layered Clean Architecture that keeps the UI, business logic, and infrastructure concerns strictly separated.
+
+| Layer | Description | Technologies |
+|---|---|---|
+| UI (Presentation) | Accessible web interface with voice control, high contrast, and easy-read content | HTML5, JavaScript, CSS, Web Speech API, React, TailwindCSS |
+| Domain | Business logic: commands, navigation, adaptive feedback | JavaScript, Python |
+| Application | Voice controllers, accessibility profiling, ethical validation | .NET ASP.NET Core, Python FastAPI |
+| Infrastructure | Local AI API for TTS and pattern detection | Python, scikit-learn, DecisionTreeClassifier |
+
+---
+
+## AI models
+
+B-Accesible uses three AI models, all trained exclusively on synthetic data. No real personal data was used at any stage of model development.
+
+<Tabs>
+  <Tab title="Nudging model">
+    **File:** `models/nudging_model.pkl`
+
+    **Goal:** Detect when a user needs help on the current screen, without waiting for them to ask.
+
+    **Input features:**
+
+    | Feature | Description |
+    |---|---|
+    | `num_validation_errors` | Number of form validation errors on the current screen |
+    | `time_on_screen_seconds` | Total time spent on the current screen |
+    | `num_back_navigations` | Number of times the user navigated backwards |
+    | `steps_total` | Total steps in the current flow |
+    | `current_step` | Current step index in the flow |
+
+    **Output:** `needs_help` (boolean), `difficulty_score` (float 0–1), `recommended_nudge_type`
+
+    **Performance:**
+
+    | Class | Precision | Recall | F1 | Support |
+    |---|---|---|---|---|
+    | 0 — no help needed | 0.82 | 0.96 | 0.88 | 1,318,672 |
+    | 1 — help needed | 0.87 | 0.60 | 0.71 | 681,328 |
+    | **Overall accuracy** | | | **0.83** | |
+    | **Macro avg F1** | | | **0.80** | |
+
+    <Note>
+      The model is intentionally conservative on Class 1 recall (0.60) to avoid over-triggering nudges. False negatives (missed help opportunities) are preferable to false positives (intrusive unsolicited interruptions) given the autonomy-first design principle.
+    </Note>
+  </Tab>
+
+  <Tab title="Accessibility profiling model">
+    **File:** `models/accessibility_model.pkl`
+
+    **Goal:** Recommend the most appropriate accessibility theme based on the user's self-reported profile and observed behavior.
+
+    **Input features:**
+
+    | Feature | Description |
+    |---|---|
+    | `can_read_small_text` | User-reported ability to read small text |
+    | `uses_screen_reader` | Whether a screen reader is in use |
+    | `feels_confident_with_apps` | Self-reported app confidence level |
+    | `age_range` | Age bracket (not used for discrimination — used for default preference inference) |
+    | `avg_time_per_screen_seconds` | Average navigation speed |
+    | `total_validation_errors` | Cumulative errors across session |
+    | `requested_help_count` | Number of times user requested help |
+
+    **Output:** `theme` — one of `standard-accessible`, `large-text-high-contrast`, `voice-assisted`
+
+    **Performance:**
+
+    | Theme | Precision | Recall | F1 | Support |
+    |---|---|---|---|---|
+    | `large-text-high-contrast` | 0.97 | 0.79 | 0.87 | 1,001,788 |
+    | `standard-accessible` | 1.00 | 1.00 | 1.00 | 768,673 |
+    | `voice-assisted` | 0.50 | 0.90 | 0.64 | 229,539 |
+    | **Overall accuracy** | | | **0.89** | |
+    | **Macro avg F1** | | | **0.84** | |
+
+    <Note>
+      The `voice-assisted` theme shows lower precision (0.50) because the synthetic data for voice-primary users is underrepresented relative to real-world distribution. This is a known limitation flagged for improvement in future training iterations.
+    </Note>
+  </Tab>
+
+  <Tab title="Risk / fraud detection model">
+    **File:** `models/risk_model.pkl`
+
+    **Goal:** Classify the risk level of a transaction before it is submitted, enabling transparent, real-time fraud alerts.
+
+    **Input features:**
+
+    | Feature | Description |
+    |---|---|
+    | `amount` | Transaction amount |
+    | `is_new_beneficiary` | Whether the recipient has not been paid before |
+    | `hour_of_day` | Hour the transaction is initiated |
+    | `num_past_transactions` | Total historical transactions from this account |
+    | `avg_transaction_amount` | Historical average transaction size |
+    | `max_transaction_amount` | Largest historical transaction |
+    | `num_transactions_to_beneficiary` | Prior transactions to this specific recipient |
+    | `is_new_device` | Whether the device is unrecognized |
+    | `geolocation_changed` | Whether the user's location has changed significantly |
+
+    **Output:** `risk_level` (`low` / `medium` / `high`), `risk_score` (float 0–1), `risk_factors` (list of contributing features)
+
+    **Performance:**
+
+    | Risk level | Precision | Recall | F1 | Support |
+    |---|---|---|---|---|
+    | `high` | 0.82 | 0.72 | 0.77 | 443,246 |
+    | `low` | 0.76 | 0.80 | 0.78 | 703,163 |
+    | `medium` | 0.72 | 0.73 | 0.73 | 853,591 |
+    | **Overall accuracy** | | | **0.75** | |
+    | **Macro avg F1** | | | **0.76** | |
+
+    <Note>
+      The risk model surfaces `risk_factors` alongside every prediction so the user sees a plain-language explanation — for example: *"This transaction is flagged because it is unusually large and the recipient is new."* Opacity in fraud detection is itself a risk for vulnerable users.
+    </Note>
+  </Tab>
+</Tabs>
+
+### Model summary
+
+| Model | Accuracy | Main ethical focus |
+|---|---|---|
+| Nudging | 0.83 | Contextual support without intrusion |
+| Accessibility | 0.89 | Proactive adaptation to user profile |
+| Risk / Fraud | 0.75 | Transparent, explainable prevention |
+
+---
+
+## Methodology details
+
+<AccordionGroup>
+  <Accordion title="Synthetic data and ethics of data" icon="database">
+    All three models were trained exclusively on programmatically generated synthetic data. No real user data — banking or otherwise — was collected, labeled, or used at any stage.
+
+    **Key constraints applied to synthetic data generation:**
+
+    - No segmentation by gender, race, or geographic location that could introduce or amplify bias
+    - Class distributions were designed to reflect realistic real-world ratios based on published research (not internal behavioral data)
+    - Datasets are version-controlled and documented alongside each model artifact
+    - Variables, known limitations, and out-of-distribution risks are noted in model cards
+
+    This approach complies with the non-bias and explainability principles in Mexico's Digital Rights Charter and UNESCO AI Ethics Guidelines.
+  </Accordion>
+
+  <Accordion title="User persona methodology" icon="users">
+    The three design personas (María, José, Laura) were constructed from:
+
+    - INEGI data on digital literacy, age distribution, and internet access in Mexico
+    - CONADIS reports on disability prevalence and assistive technology access
+    - Academic literature on cognitive load in digital banking interfaces
+    - Published HCI research on older adult interaction patterns with mobile apps
+
+    Personas were used throughout design, implementation, and evaluation phases — not just as an initial artifact. Each architectural and AI decision was reviewed against the question: *"Does this serve María, José, and Laura?"*
+  </Accordion>
+
+  <Accordion title="Nudging design constraints" icon="hand">
+    The nudging system was designed under strict behavioral constraints to prevent it from becoming coercive or manipulative:
+
+    - Triggers only when at least two confusion signals are present simultaneously (e.g., high time on screen *and* repeated validation errors)
+    - Uses a single, non-repeated offer per screen — does not persist or escalate
+    - Tone is reviewed against plain-language guidelines: no condescension, no urgency framing, no loss aversion language
+    - Trigger thresholds are configurable and logged, enabling post-hoc audit of nudge frequency and user acceptance rates
+    - Acceptance and rejection events are tracked to identify screens that systematically generate confusion — feeding back into UX improvements rather than nudge tuning
+  </Accordion>
+
+  <Accordion title="Accessibility evaluation criteria" icon="universal-access">
+    Accessibility was evaluated against WCAG 2.1 Level AA and EN 301 549:
+
+    | Criterion | Compliance | Evidence |
+    |---|---|---|
+    | Visual contrast | WCAG AA | Verified with axe DevTools |
+    | Text size | ✅ | Scalable via on-screen controls |
+    | Keyboard navigation | ✅ | Visible focus indicators and logical tab order |
+    | Screen reader | ✅ | VoiceOver tested on key flows |
+    | Voice and TTS | ✅ | Clear es-MX tone, respectful phrasing |
+
+    ARIA landmarks, roles, and live regions are implemented throughout the React component tree to ensure screen readers can announce dynamic content changes without requiring page reloads.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Expected results with real users
+
+Based on usability simulations and comparable published research:
+
+| Metric | Projected outcome |
+|---|---|
+| Voice navigation task success rate | ~92% |
+| Reduction in interaction steps (vs. standard banking UI) | –35% |
+| Easy-read message comprehension improvement | +40% in simulated tests |
+
+<Warning>
+  These figures are projections based on simulated testing, not validated user studies. Real-world validation with target populations is required before these claims can be treated as evidence.
+</Warning>
+
+---
+
+## Future developments
+
+- Integrate real open banking APIs in compliance with Mexico's open finance regulations
+- Expand TTS and UI support to Mexican indigenous languages (Nahuatl, Mixtec, Zapotec)
+- Include accessible biometric context detection (e.g., voice pattern recognition for returning users)
+- Validate all three AI models and the nudging system with real groups of older adults, community members, and users with disabilities
+- Publish model cards and dataset documentation as open artifacts for independent audit

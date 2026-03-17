@@ -1,0 +1,103 @@
+---
+title: Environment variables
+description: Reference for all environment variables required to run B-Accesible locally and in Docker.
+---
+
+B-Accesible is configured through environment variables injected at runtime. Most variables are set automatically by Docker Compose. Only a small set needs to be provided by you in a `.env` file.
+
+## .env file
+
+Create this file at `backend/.env` before running `docker compose up`. Docker Compose reads it automatically.
+
+<Warning>
+Never commit your `.env` file to source control. Ensure it is listed in `.gitignore`.
+</Warning>
+
+<CodeGroup>
+
+```env backend/.env
+JWT_SECRET_KEY=your-super-secret-key-min-32-characters-long
+DB_PASSWORD=YourStr0ng!Password
+```
+
+</CodeGroup>
+
+## Backend — required secrets
+
+These two variables must be set manually. Everything else is derived from them or has a fixed default.
+
+| Name | Required | Default | Description |
+|------|----------|---------|-------------|
+| `JWT_SECRET_KEY` | Yes | — | Secret key used to sign and validate JWT tokens. Must be a strong random string (minimum 32 characters recommended). Shared across all services. |
+| `DB_PASSWORD` | Yes | — | SQL Server SA password. Must meet SQL Server complexity requirements: minimum 8 characters with uppercase, lowercase, digit, and special character. |
+
+<Warning>
+Use a cryptographically random value for `JWT_SECRET_KEY`. Any service that shares this key can issue valid tokens for the entire system. A short or guessable key is a critical security vulnerability.
+</Warning>
+
+## AuthService
+
+Injected automatically by Docker Compose. No manual configuration required beyond the `.env` file.
+
+| Name | Source | Description |
+|------|--------|-------------|
+| `ConnectionStrings__DefaultConnection` | Docker Compose | Connection string to `auth_db` on the `sql-server-db` container. |
+| `JwtSettings__Key` | `JWT_SECRET_KEY` | JWT signing key. |
+| `JwtSettings__Issuer` | Fixed value | JWT issuer claim. Value: `https://api.backendAuth.com`. |
+| `JwtSettings__Audience` | Fixed value | JWT audience claim. Value: `https://app.backendAuth.com`. |
+
+## LedgerService
+
+| Name | Source | Description |
+|------|--------|-------------|
+| `ConnectionStrings__LedgerDbConnection` | Docker Compose | Connection string to `ledger_db` on the `sql-server-db` container. |
+| `JwtSettings__Key` | `JWT_SECRET_KEY` | JWT signing key. |
+| `JwtSettings__Issuer` | Fixed value | JWT issuer claim. Value: `https://api.backendAuth.com`. |
+| `JwtSettings__Audience` | Fixed value | JWT audience claim. Value: `https://app.backendAuth.com`. |
+
+## AnalyticsService
+
+| Name | Source | Description |
+|------|--------|-------------|
+| `ConnectionStrings__AnalyticsDbConnection` | Docker Compose | Connection string to `analytics_db` on the `sql-server-db` container. |
+| `JwtSettings__Key` | `JWT_SECRET_KEY` | JWT signing key. |
+
+## OpenFinanceService
+
+| Name | Source | Description |
+|------|--------|-------------|
+| `ConnectionStrings__OpenFinanceDbConnection` | Docker Compose | Connection string to `openfinance_db` on the `sql-server-db` container. |
+| `JwtSettings__Key` | `JWT_SECRET_KEY` | JWT signing key. |
+| `JwtSettings__Issuer` | Fixed value | JWT issuer claim. Value: `https://api.backendAuth.com`. |
+| `JwtSettings__Audience` | Fixed value | JWT audience claim. Value: `https://app.backendAuth.com`. |
+
+## AI Service
+
+The AI Service (Python/FastAPI) does not require environment variables. It is configured directly in `serviceapi.py`.
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| Model directory | `backend/ai_service/models/` | `.pkl` files loaded at startup. |
+| CORS allowed origin | `http://localhost:5173` | Matches the Vite dev server. |
+| Default port | `8001` | Start with `uvicorn serviceapi:app --port 8001`. |
+
+<Note>
+The AI Service is not included in Docker Compose. Run it separately. See the [services reference](/deployment/services) for instructions.
+</Note>
+
+## Frontend (Vite)
+
+No environment variables are required for local development. The Vite app calls the API Gateway at `http://localhost:5000` by default.
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| API base URL | `http://localhost:5000` | Configured in the Vite project source. Change here if you remap the gateway port. |
+| Dev server port | `5173` | Default Vite port. |
+
+## OcelotGateway
+
+| Name | Source | Description |
+|------|--------|-------------|
+| `JwtSettings__Key` | `JWT_SECRET_KEY` | JWT signing key used to validate tokens before forwarding requests. |
+| `JwtSettings__Issuer` | Fixed value | Expected issuer in incoming tokens. Value: `https://api.backendAuth.com`. |
+| `JwtSettings__Audience` | Fixed value | Expected audience in incoming tokens. Value: `https://app.backendAuth.com`. |

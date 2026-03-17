@@ -1,0 +1,152 @@
+---
+title: "Transactions"
+description: "Create and retrieve SPEI transactions"
+---
+
+<Warning>
+  All endpoints on this page require a valid `Authorization: Bearer <token>` header. Requests without a valid token return `401 Unauthorized`.
+</Warning>
+
+<Info>
+  Before submitting a transaction, the frontend evaluates the transfer with [`POST /ai/risk`](/api/ai/risk). If the returned risk level is `medium` or `high`, the user is shown a `ConfirmDialog` before the transfer is submitted.
+</Info>
+
+## List transactions
+
+<br />
+
+`GET /api/ledger/transactions`
+
+Returns all transactions for the authenticated user.
+
+### Response
+
+<ResponseField name="id" type="string" required>
+  Unique transaction identifier (UUID).
+</ResponseField>
+
+<ResponseField name="sourceAccountId" type="string" required>
+  UUID of the sender's account.
+</ResponseField>
+
+<ResponseField name="destinationClabe" type="string" required>
+  18-digit CLABE of the recipient account.
+</ResponseField>
+
+<ResponseField name="amount" type="number" required>
+  Transfer amount in MXN.
+</ResponseField>
+
+<ResponseField name="concept" type="string">
+  Transfer concept or description (max 40 characters, SPEI standard).
+</ResponseField>
+
+<ResponseField name="status" type="string" required>
+  Current transaction status, e.g., `"completed"`, `"pending"`, `"failed"`.
+</ResponseField>
+
+<ResponseField name="riskLevel" type="string" required>
+  Risk level assigned at submission time: `"low"`, `"medium"`, or `"high"`.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string" required>
+  ISO 8601 timestamp of when the transaction was created.
+</ResponseField>
+
+<CodeGroup>
+
+```bash curl
+curl --request GET \
+  --url http://localhost:5000/api/ledger/transactions \
+  --header 'Authorization: Bearer <token>'
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "id": "txn-uuid",
+    "sourceAccountId": "account-uuid",
+    "destinationClabe": "646180123456789012",
+    "amount": 500.00,
+    "concept": "Renta",
+    "status": "completed",
+    "riskLevel": "low",
+    "createdAt": "2026-03-17T14:30:00Z"
+  }
+]
+```
+
+---
+
+## Create transaction
+
+<br />
+
+`POST /api/ledger/transactions`
+
+Creates a new SPEI transfer. The transfer is debited from the specified source account and sent to the destination CLABE.
+
+<Tip>
+  Call [`POST /ai/risk`](/api/ai/risk) before this endpoint and present a confirmation dialog to the user when the risk level is `medium` or `high`.
+</Tip>
+
+### Request body
+
+<ParamField body="sourceAccountId" type="string" required>
+  UUID of the account to debit.
+</ParamField>
+
+<ParamField body="destinationClabe" type="string" required>
+  18-digit CLABE of the recipient. Must be a valid Mexican interbank CLABE.
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Transfer amount in MXN. Must be greater than zero and not exceed the source account balance.
+</ParamField>
+
+<ParamField body="concept" type="string">
+  Transfer concept or description. Maximum 40 characters (SPEI standard).
+</ParamField>
+
+<ParamField body="beneficiaryId" type="string">
+  UUID of a saved beneficiary. If provided, the transfer is linked to that beneficiary record.
+</ParamField>
+
+### Error responses
+
+| Status | Description |
+|--------|-------------|
+| `400`  | Insufficient funds or validation error. |
+| `401`  | Invalid or missing bearer token. |
+
+<CodeGroup>
+
+```bash curl
+curl --request POST \
+  --url http://localhost:5000/api/ledger/transactions \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "sourceAccountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "destinationClabe": "646180123456789012",
+  "amount": 500.00,
+  "concept": "Renta"
+}'
+```
+
+</CodeGroup>
+
+```json Response (201 Created)
+{
+  "id": "txn-uuid",
+  "sourceAccountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "destinationClabe": "646180123456789012",
+  "amount": 500.00,
+  "concept": "Renta",
+  "status": "completed",
+  "riskLevel": "low",
+  "createdAt": "2026-03-17T14:30:00Z"
+}
+```

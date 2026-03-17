@@ -1,0 +1,185 @@
+---
+title: Adaptive Accessibility
+description: How B-Accesible uses AI to recommend and apply personalized accessibility profiles for every user.
+---
+
+B-Accesible automatically adapts its interface to each user's needs using an AI-driven accessibility profile system. During onboarding, the system asks a few simple questions and recommends the best profile. Users can override any setting at any time.
+
+## Accessibility profiles
+
+The system supports three built-in accessibility themes.
+
+<Tabs>
+  <Tab title="standard-accessible">
+    **Default accessible mode**
+
+    Applied when the user has no specific accessibility needs. Meets WCAG 2.1 level AA by default: sufficient contrast, scalable text, and full keyboard navigation.
+
+    | Setting | Value |
+    |---|---|
+    | Font scale | 1.0x |
+    | Screen reader mode | Off |
+    | Voice feedback | Off |
+    | Nudging level | Medium |
+  </Tab>
+  <Tab title="large-text-high-contrast">
+    **Large text and high contrast**
+
+    Recommended for users who have difficulty reading small text, adults aged 51+, or users who indicate low app confidence during onboarding.
+
+    | Setting | Value |
+    |---|---|
+    | Font scale | **1.6x** |
+    | Screen reader mode | Off |
+    | Voice feedback | Off |
+    | Nudging level | High |
+
+    <Tip>This profile is the most commonly recommended by the AI model for first-time users aged 51 and above.</Tip>
+  </Tab>
+  <Tab title="voice-assisted">
+    **Voice-assisted mode**
+
+    Recommended for users who rely on screen readers. Enables voice feedback via the Web Speech API and activates full screen reader compatibility.
+
+    | Setting | Value |
+    |---|---|
+    | Font scale | 1.0x |
+    | Screen reader mode | **On** |
+    | Voice feedback | **On** |
+    | Nudging level | Medium |
+
+    <Note>Voice input and text-to-speech use Mexican Spanish (`es-MX`) via the Web Speech API. VoiceOver compatibility has been tested on iOS.</Note>
+  </Tab>
+</Tabs>
+
+---
+
+## Onboarding wizard
+
+The `WizardView` is shown on first launch. It collects simple answers to determine which accessibility profile best fits the user.
+
+<Steps>
+  <Step title="Small text question">
+    The system asks: **"Can you read small text comfortably?"**
+
+    A `no` answer is a strong signal toward the `large-text-high-contrast` profile.
+  </Step>
+  <Step title="Screen reader question">
+    The system asks: **"Do you use a screen reader?"**
+
+    A `yes` answer is a strong signal toward the `voice-assisted` profile.
+  </Step>
+  <Step title="App confidence">
+    The system asks: **"How confident are you using banking apps?"**
+
+    Accepted values: `low`, `medium`, `high`.
+
+    Low confidence increases the nudging level and may reinforce the `large-text-high-contrast` recommendation.
+  </Step>
+  <Step title="Age range">
+    The system asks: **"What is your age range?"**
+
+    Accepted values: `18_30`, `31_50`, `51_60`, `60_plus`.
+
+    Users in the `51_60` or `60_plus` ranges are more likely to receive the `large-text-high-contrast` recommendation.
+  </Step>
+  <Step title="AI recommendation">
+    The wizard answers are sent to `POST /ai/accessibility`. The model returns a personalized profile recommendation with a confidence score and a plain-language explanation.
+
+    The user sees the recommended settings and can accept or adjust them before continuing.
+  </Step>
+</Steps>
+
+---
+
+## AI recommendation
+
+After the wizard completes, the frontend calls the accessibility inference endpoint.
+
+```http
+POST /ai/accessibility
+```
+
+**Request body:**
+
+```json
+{
+  "can_read_small_text": false,
+  "uses_screen_reader": false,
+  "app_confidence": "low",
+  "age_range": "51_60"
+}
+```
+
+**Response:**
+
+```json
+{
+  "recommendation": {
+    "theme": "large-text-high-contrast",
+    "screen_reader_mode": false,
+    "font_scale": 1.6,
+    "nudging_level": "high",
+    "voice_feedback": false
+  },
+  "confidence": 0.9,
+  "explanation": ["Increased font and contrast for readability"]
+}
+```
+
+The `explanation` array contains plain-language strings that are shown to the user alongside the recommendation, so they understand why a particular profile was selected.
+
+<Note>The `confidence` score (0–1) reflects the model's certainty about the recommendation. If confidence is below a threshold, the system presents the recommendation as a suggestion rather than a default.</Note>
+
+---
+
+## Manual customization
+
+Users can override the AI recommendation at any time from the **Preferences** screen (`PreferencesView`).
+
+Available controls:
+
+- **`FontSelector`** — Choose from a set of accessible typefaces.
+- **`FontSizeSelector`** — Adjust the font scale independently of the AI-recommended value.
+
+Changes take effect immediately and are saved to the server.
+
+<Tip>Encouraging users to explore the Preferences screen improves long-term satisfaction. The AI recommendation is a starting point, not a constraint.</Tip>
+
+---
+
+## Persisting the profile
+
+The accessibility profile is stored server-side and loaded on every login so preferences are consistent across sessions and devices.
+
+| Operation | Endpoint |
+|---|---|
+| Save profile | `PUT /api/profile/accessibility` |
+| Load profile | `GET /api/profile/accessibility` |
+
+---
+
+## Accessibility standards
+
+All interfaces meet **WCAG 2.1 level AA**. The following requirements are implemented across all screens:
+
+<Columns cols={2}>
+  <Card title="High contrast" icon="eye">
+    Color combinations meet or exceed the 4.5:1 contrast ratio required by WCAG 2.1 AA for normal text.
+  </Card>
+  <Card title="Scalable text" icon="text-size">
+    All text respects the user's font scale setting. No text is fixed in absolute pixel sizes.
+  </Card>
+  <Card title="Keyboard navigation" icon="keyboard">
+    Every interactive element is reachable and operable via keyboard alone, with visible focus indicators.
+  </Card>
+  <Card title="Screen reader support" icon="volume-2">
+    All components include appropriate ARIA labels. VoiceOver on iOS has been tested.
+  </Card>
+  <Card title="Voice input / TTS" icon="mic">
+    Voice input and text-to-speech are available in Mexican Spanish (`es-MX`) via the Web Speech API.
+  </Card>
+  <Card title="Non-technical language" icon="message-square">
+    All UI copy, alerts, and AI explanations avoid technical jargon.
+  </Card>
+</Columns>

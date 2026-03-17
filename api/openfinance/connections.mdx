@@ -1,0 +1,203 @@
+---
+title: "Open Finance Connections"
+description: "Manage connections to external bank accounts"
+---
+
+<Warning>
+  All endpoints on this page require a valid `Authorization: Bearer <token>` header. Requests without a valid token return `401 Unauthorized`.
+</Warning>
+
+## List connections
+
+<br />
+
+`GET /api/openfinance/connections`
+
+Returns all external bank connections for the authenticated user.
+
+### Response
+
+<ResponseField name="id" type="string" required>
+  Unique connection identifier (UUID).
+</ResponseField>
+
+<ResponseField name="userId" type="string" required>
+  UUID of the user who owns the connection.
+</ResponseField>
+
+<ResponseField name="institutionName" type="string" required>
+  Name of the connected external institution, e.g., `"BBVA"`.
+</ResponseField>
+
+<ResponseField name="externalAccountId" type="string" required>
+  Account identifier at the external institution.
+</ResponseField>
+
+<ResponseField name="accountAlias" type="string">
+  Friendly name for this connection.
+</ResponseField>
+
+<ResponseField name="lastSyncedAt" type="string">
+  ISO 8601 timestamp of the most recent successful sync.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string" required>
+  ISO 8601 timestamp of when the connection was created.
+</ResponseField>
+
+<CodeGroup>
+
+```bash curl
+curl --request GET \
+  --url http://localhost:5000/api/openfinance/connections \
+  --header 'Authorization: Bearer <token>'
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "id": "conn-uuid",
+    "userId": "user-uuid",
+    "institutionName": "BBVA",
+    "externalAccountId": "ext-123",
+    "accountAlias": "BBVA personal",
+    "lastSyncedAt": "2026-03-17T10:00:00Z",
+    "createdAt": "2026-03-10T08:00:00Z"
+  }
+]
+```
+
+---
+
+## Create connection
+
+<br />
+
+`POST /api/openfinance/connections`
+
+Links a new external bank account to the authenticated user's profile.
+
+### Request body
+
+<ParamField body="institutionName" type="string" required>
+  Name of the external bank or financial institution.
+</ParamField>
+
+<ParamField body="externalAccountId" type="string" required>
+  Account identifier assigned by the external institution.
+</ParamField>
+
+<ParamField body="accountAlias" type="string">
+  Optional friendly name for this connection.
+</ParamField>
+
+### Error responses
+
+| Status | Description |
+|--------|-------------|
+| `400`  | Validation error — missing or invalid fields. |
+| `401`  | Invalid or missing bearer token. |
+
+<CodeGroup>
+
+```bash curl
+curl --request POST \
+  --url http://localhost:5000/api/openfinance/connections \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "institutionName": "BBVA",
+  "externalAccountId": "ext-123",
+  "accountAlias": "BBVA personal"
+}'
+```
+
+</CodeGroup>
+
+```json Response (201 Created)
+{
+  "id": "conn-uuid",
+  "userId": "user-uuid",
+  "institutionName": "BBVA",
+  "externalAccountId": "ext-123",
+  "accountAlias": "BBVA personal",
+  "lastSyncedAt": null,
+  "createdAt": "2026-03-17T14:00:00Z"
+}
+```
+
+---
+
+## Remove connection
+
+<br />
+
+`DELETE /api/openfinance/connections/{id}`
+
+Removes an external bank connection. Associated product data is no longer accessible after deletion.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  UUID of the connection to delete.
+</ParamField>
+
+### Response
+
+Returns `204 No Content` on success with an empty body.
+
+### Error responses
+
+| Status | Description |
+|--------|-------------|
+| `401`  | Invalid or missing bearer token. |
+| `404`  | Connection not found or belongs to a different user. |
+
+<CodeGroup>
+
+```bash curl
+curl --request DELETE \
+  --url http://localhost:5000/api/openfinance/connections/conn-uuid \
+  --header 'Authorization: Bearer <token>'
+```
+
+</CodeGroup>
+
+---
+
+## Sync connection
+
+<br />
+
+`POST /api/openfinance/sync/{connectionId}`
+
+Triggers a pull of the latest balance and transaction data from the external institution. Returns an array of newly synced external products.
+
+### Path parameters
+
+<ParamField path="connectionId" type="string" required>
+  UUID of the connection to sync.
+</ParamField>
+
+### Response
+
+Returns an array of synced external product objects. See [External Products](/api/openfinance/products) for the product schema.
+
+### Error responses
+
+| Status | Description |
+|--------|-------------|
+| `401`  | Invalid or missing bearer token. |
+| `404`  | Connection not found or belongs to a different user. |
+
+<CodeGroup>
+
+```bash curl
+curl --request POST \
+  --url http://localhost:5000/api/openfinance/sync/conn-uuid \
+  --header 'Authorization: Bearer <token>'
+```
+
+</CodeGroup>

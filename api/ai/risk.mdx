@@ -1,0 +1,138 @@
+---
+title: "Risk Assessment"
+description: "Score a transaction for fraud risk before it is confirmed"
+---
+
+<Info>
+  This endpoint is served by the AI service at `http://localhost:8001`. It is an internal service and does not require authentication.
+</Info>
+
+## POST /ai/risk
+
+Evaluates a pending transaction and returns a risk level with explainable factors. Call this endpoint before presenting the user with the transfer confirmation screen. If the risk level is `medium` or `high`, surface a confirmation dialog to the user before calling [`POST /api/ledger/transactions`](/api/ledger/transactions).
+
+<Note>
+  Model accuracy: **0.75**.
+</Note>
+
+### Request body
+
+<ParamField body="amount" type="number" required>
+  Transaction amount in MXN.
+</ParamField>
+
+<ParamField body="is_new_beneficiary" type="boolean" required>
+  Whether the recipient has never received a transfer from this user.
+</ParamField>
+
+<ParamField body="hour_of_day" type="integer" required>
+  Local hour of the transaction (0–23).
+</ParamField>
+
+<ParamField body="num_past_transactions" type="integer" required>
+  Total number of transactions in the user's history. Must be `≥ 0`.
+</ParamField>
+
+<ParamField body="avg_transaction_amount" type="number" required>
+  User's historical average transaction amount.
+</ParamField>
+
+<ParamField body="max_transaction_amount" type="number" required>
+  User's historical maximum transaction amount.
+</ParamField>
+
+<ParamField body="num_transactions_to_beneficiary" type="integer" required>
+  Number of prior transfers to this specific recipient. Must be `≥ 0`.
+</ParamField>
+
+<ParamField body="is_new_device" type="boolean" required>
+  Whether the current device is new or unrecognized.
+</ParamField>
+
+<ParamField body="geolocation_changed" type="boolean" required>
+  Whether the user's current location differs from their usual location.
+</ParamField>
+
+<ParamField body="user_id" type="string">
+  Optional user identifier for logging and analytics.
+</ParamField>
+
+### Response
+
+<ResponseField name="user_id" type="string">
+  Echoed user identifier from the request.
+</ResponseField>
+
+<ResponseField name="model_version" type="string" required>
+  Version of the risk model that produced the result.
+</ResponseField>
+
+<ResponseField name="result" type="object" required>
+  <Expandable title="result properties">
+    <ResponseField name="risk_level" type="string" required>
+      Overall risk classification. See [risk levels](#risk-levels) below.
+    </ResponseField>
+    <ResponseField name="risk_score" type="number" required>
+      Continuous risk score between `0.0` (no risk) and `1.0` (maximum risk).
+    </ResponseField>
+    <ResponseField name="risk_factors" type="string[]" required>
+      List of contributing risk factor codes. See [risk factor codes](#risk-factor-codes) below.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Risk levels
+
+| Level | Recommended action |
+|-------|--------------------|
+| `low` | Proceed normally. |
+| `medium` | Show an explanation and require user confirmation. |
+| `high` | Require explicit acknowledgment before proceeding. |
+
+### Risk factor codes
+
+| Code | Description |
+|------|-------------|
+| `AMOUNT_MUCH_HIGHER_THAN_AVERAGE` | Amount is more than 2× the user's historical average. |
+| `NEW_BENEFICIARY` | First transfer to this recipient. |
+| `UNUSUAL_TIME` | Transaction is outside normal hours (06:00–22:00). |
+| `NEW_DEVICE` | Device has not been seen before. |
+| `LOCATION_CHANGED` | Geolocation differs from the user's usual location. |
+| `LOW_HISTORY` | Fewer than 3 prior transactions on the account. |
+
+<CodeGroup>
+
+```bash curl
+curl --request POST \
+  --url http://localhost:8001/ai/risk \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "user_id": "user-123",
+  "amount": 15000.00,
+  "is_new_beneficiary": true,
+  "hour_of_day": 14,
+  "num_past_transactions": 12,
+  "avg_transaction_amount": 600.00,
+  "max_transaction_amount": 5000.00,
+  "num_transactions_to_beneficiary": 0,
+  "is_new_device": false,
+  "geolocation_changed": false
+}'
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "user_id": "user-123",
+  "model_version": "risk-v1.0",
+  "result": {
+    "risk_level": "medium",
+    "risk_score": 0.62,
+    "risk_factors": [
+      "NEW_BENEFICIARY",
+      "AMOUNT_MUCH_HIGHER_THAN_AVERAGE"
+    ]
+  }
+}
+```

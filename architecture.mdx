@@ -1,0 +1,192 @@
+---
+title: "Architecture"
+description: "How B-Accesible's microservices, API gateway, AI layer, and React frontend connect to deliver accessible digital banking."
+---
+
+## System overview
+
+B-Accesible is a microservices-based digital banking proof of concept. Every request from the browser passes through the **Ocelot API Gateway** on port 5000, which validates JWT tokens and routes traffic to the appropriate downstream service. The gateway is the single entry point — no service is exposed directly to the client.
+
+A Python FastAPI **AI service** runs alongside the .NET microservices and provides three machine-learning capabilities: difficulty nudging, accessibility profiling, and risk/fraud scoring.
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   Browser (React)                   │
+│                 http://localhost:5173               │
+└────────────────────────┬────────────────────────────┘
+                         │ HTTP
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│           Ocelot API Gateway  :5000                 │
+│        JWT validation · request routing             │
+└──────┬─────────┬────────────┬──────────┬────────────┘
+       │         │            │          │
+       ▼         ▼            ▼          ▼
+ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+ │   Auth   │ │  Ledger  │ │  Open    │ │Analytics │
+ │ Service  │ │ Service  │ │ Finance  │ │ Service  │
+ │          │ │          │ │ Service  │ │  :7002   │
+ └──────────┘ └──────────┘ └──────────┘ └──────────┘
+       │             │           │             │
+       └─────────────┴───────────┴─────────────┘
+                         │
+              ┌──────────▼──────────┐
+              │   SQL Server 2022   │
+              │       :1433         │
+              │ auth_db · ledger_db │
+              │ openfinance_db      │
+              │ analytics_db        │
+              └─────────────────────┘
+
+          ┌──────────────────────────┐
+          │  AI Service (FastAPI)    │
+          │        :8001             │
+          │ /ai/nudge               │
+          │ /ai/accessibility        │
+          │ /ai/risk                 │
+          └──────────────────────────┘
+```
+
+## Services
+
+<CardGroup cols={2}>
+  <Card title="Ocelot Gateway" icon="shield-halved">
+    **.NET API Gateway** running on port 5000. Uses the [Ocelot](https://ocelot.readthedocs.io/) library to validate incoming JWT tokens and reverse-proxy requests to downstream services. All routes are prefixed through the gateway — clients never call microservices directly.
+  </Card>
+  <Card title="Auth Service" icon="key">
+    Handles user registration, login, and JWT issuance. Also manages user profiles, accessibility profiles, and consent records. Routes: `/api/auth`, `/api/profile`.
+  </Card>
+  <Card title="Ledger Service" icon="money-bill-transfer">
+    Manages bank accounts, SPEI transfers, transaction history, and beneficiary management. Routes: `/api/ledger`.
+  </Card>
+  <Card title="Open Finance Service" icon="link">
+    Manages connections to external banks and syncs financial products into the B-Accesible account view. Routes: `/api/openfinance`.
+  </Card>
+  <Card title="Analytics Service" icon="chart-line">
+    Receives and stores user interaction events (time on screen, navigation patterns, validation errors). Used for measuring accessibility impact over time. Routes: `/api/analytics`. Port 7002.
+  </Card>
+  <Card title="AI Service" icon="brain">
+    Python FastAPI service on port 8001. Provides three ML models: nudging (user difficulty detection), accessibility profiling, and risk/fraud scoring. Routes: `/ai/nudge`, `/ai/accessibility`, `/ai/risk`.
+  </Card>
+</CardGroup>
+
+### Database layout
+
+All services share a single SQL Server 2022 instance on port 1433. Each service owns its own database, enforcing logical isolation:
+
+| Database | Owner service |
+|---|---|
+| `auth_db` | Auth Service |
+| `ledger_db` | Ledger Service |
+| `openfinance_db` | Open Finance Service |
+| `analytics_db` | Analytics Service |
+
+## Authentication flow
+
+Every protected endpoint requires a JWT token issued by the Auth Service.
+
+<Steps>
+  <Step title="Login request">
+    The client calls `POST /api/auth/login` through the gateway with email and password credentials.
+  </Step>
+  <Step title="JWT issuance">
+    The Auth Service validates the credentials and returns a signed JWT token. The token is signed with `JWT_SECRET_KEY`.
+  </Step>
+  <Step title="Authenticated requests">
+    The client includes the token in every subsequent request:
+    ```http
+    Authorization: Bearer <token>
+    ```
+  </Step>
+  <Step title="Gateway validation">
+    The Ocelot gateway intercepts the request, validates the JWT signature and expiry, and — if valid — forwards the request to the downstream service. Invalid or missing tokens receive a `401 Unauthorized` response before reaching any service.
+  </Step>
+</Steps>
+
+## AI integration flow
+
+The AI service integrates at three points in the user journey:
+
+<Steps>
+  <Step title="Behavioral signal collection">
+    The frontend continuously collects lightweight behavioral signals: time spent on a screen, number of validation errors, and back-navigation count. These signals are assembled into a feature payload.
+  </Step>
+  <Step title="Nudging check">
+    The feature payload is sent to `POST /ai/nudge`. The model determines whether the user is experiencing difficulty and whether the app should proactively offer assistance or adjust the interface.
+  </Step>
+  <Step title="Accessibility profiling (onboarding)">
+    During the onboarding wizard, the app calls `POST /ai/accessibility` with the collected signals and any explicit preference inputs. The model recommends an accessibility profile (font size, contrast level, interaction mode) that is saved to the Auth Service.
+  </Step>
+  <Step title="Risk scoring (transfers)">
+    Before the user confirms a SPEI transfer, the app calls `POST /ai/risk` with transaction details. The model returns a risk score. The frontend renders a `RiskBadge` component on the confirmation screen, and the gateway can use the score to flag high-risk transactions.
+  </Step>
+</Steps>
+
+<Note>
+  The AI service is decoupled from the .NET microservices and runs as an independent Python process. It does not share the SQL Server database — any persistence is handled by the services that call it.
+</Note>
+
+## Frontend architecture
+
+The frontend is a **React 19** single-page application built with Vite, styled with TailwindCSS, and animated with Framer Motion. It runs on port 5173 during development.
+
+### Views
+
+Each view maps to a route in the application:
+
+| View | Purpose |
+|---|---|
+| `LoginView` | User login |
+| `SignupView` | Account registration |
+| `HomeView` | Dashboard and quick actions |
+| `AccountsView` | Bank account overview |
+| `CardsView` | Payment cards |
+| `TransferView` | SPEI transfer form |
+| `ReceiveView` | Receive funds / QR code |
+| `PayServicesView` | Bill and service payments |
+| `PreferencesView` | Accessibility preference settings |
+| `WizardView` | Onboarding accessibility wizard |
+
+### Shared components
+
+<Columns cols={2}>
+  <Card title="AcountCard" icon="credit-card">
+    Displays a bank account summary with balance and account number.
+  </Card>
+  <Card title="ActionButton" icon="hand-pointer">
+    Primary CTA button with accessible focus and contrast states.
+  </Card>
+  <Card title="ConfirmDialog" icon="circle-check">
+    Modal confirmation dialog used before destructive or financial actions.
+  </Card>
+  <Card title="FontSelector / FontSizeSelector" icon="font">
+    Controls for changing typeface and text size within the accessibility preferences.
+  </Card>
+  <Card title="RiskBadge" icon="triangle-exclamation">
+    Displays the AI-generated risk score on the transfer confirmation screen.
+  </Card>
+  <Card title="ProgressBar / StepWrapper" icon="bars-progress">
+    Progress indicator and step container used in the onboarding wizard.
+  </Card>
+  <Card title="InputField" icon="i-cursor">
+    Accessible form input with built-in validation error display.
+  </Card>
+  <Card title="ModalAlert / Toast" icon="bell">
+    System notifications — modal for blocking alerts, toast for non-blocking feedback.
+  </Card>
+</Columns>
+
+### State management and services layer
+
+Application state is managed with **React Context**. API communication is handled by a dedicated services layer built on **axios**, with one client per backend domain (auth, ledger, open finance, analytics, AI).
+
+## Technology summary
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, TailwindCSS, Framer Motion |
+| API Gateway | .NET, Ocelot |
+| Microservices | .NET (C#) |
+| AI Service | Python, FastAPI |
+| Database | SQL Server 2022 |
+| Container runtime | Docker, Docker Compose |

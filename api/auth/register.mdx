@@ -1,0 +1,87 @@
+---
+title: "Register"
+description: "Create a new B-Accesible user account"
+---
+
+<Warning>
+  Tokens returned from registration must be stored securely. All subsequent protected requests require the JWT in the `Authorization` header.
+</Warning>
+
+## Endpoint
+
+```
+POST http://localhost:5000/api/auth/register
+```
+
+No authentication required. On success, the user is automatically logged in and a JWT token is returned — identical in structure to the [login](/api/auth/login) response.
+
+## Request body
+
+<ParamField body="email" type="string" required>
+  User's email address. Must be unique across all accounts.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Account password. Must meet security requirements (minimum length, uppercase, digit, and special character).
+</ParamField>
+
+<ParamField body="firstName" type="string" required>
+  User's first name.
+</ParamField>
+
+<ParamField body="lastName" type="string" required>
+  User's last name.
+</ParamField>
+
+## Response
+
+### 200 OK
+
+<ResponseField name="token" type="string" required>
+  Signed JWT for authenticating subsequent requests.
+</ResponseField>
+
+<ResponseField name="expiresAt" type="string" required>
+  ISO 8601 timestamp indicating when the token expires.
+</ResponseField>
+
+<ResponseField name="userId" type="string" required>
+  UUID of the newly created user.
+</ResponseField>
+
+### Error responses
+
+| Status | Description |
+| --- | --- |
+| `400 Bad Request` | Validation error or email already registered. |
+
+```json 400
+{
+  "message": "El usuario ya existe."
+}
+```
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "maria@example.com",
+    "password": "SecurePass123!",
+    "firstName": "María",
+    "lastName": "González"
+  }'
+```
+
+```json Response
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresAt": "2026-03-18T00:00:00Z",
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+}
+```
+
+</CodeGroup>

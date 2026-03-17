@@ -1,0 +1,82 @@
+---
+title: "Login"
+description: "Authenticate a user and receive a JWT token"
+---
+
+## Endpoint
+
+```
+POST http://localhost:5000/api/auth/login
+```
+
+No authentication required. Returns a signed JWT token to use in all protected requests.
+
+## Request body
+
+<ParamField body="email" type="string" required>
+  Registered email address.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Account password.
+</ParamField>
+
+## Response
+
+### 200 OK
+
+<ResponseField name="token" type="string" required>
+  Signed JWT for authenticating subsequent requests.
+</ResponseField>
+
+<ResponseField name="expiresAt" type="string" required>
+  ISO 8601 timestamp indicating when the token expires.
+</ResponseField>
+
+<ResponseField name="userId" type="string" required>
+  UUID of the authenticated user.
+</ResponseField>
+
+### Error responses
+
+| Status | Description |
+| --- | --- |
+| `400 Bad Request` | Validation error (missing or malformed fields). |
+| `401 Unauthorized` | Incorrect email or password. |
+
+```json 401
+{
+  "message": "Correo o contraseña incorrecta."
+}
+```
+
+## Using the token
+
+Include the returned token as a Bearer token in the `Authorization` header of all protected requests:
+
+```bash
+Authorization: Bearer <token>
+```
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "maria@example.com",
+    "password": "SecurePass123!"
+  }'
+```
+
+```json Response
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresAt": "2026-03-18T00:00:00Z",
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+}
+```
+
+</CodeGroup>

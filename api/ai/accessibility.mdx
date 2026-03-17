@@ -1,0 +1,132 @@
+---
+title: "Accessibility Recommendation"
+description: "Get an AI-generated accessibility profile recommendation"
+---
+
+<Info>
+  This endpoint is served by the AI service at `http://localhost:8001`. It is an internal service and does not require authentication.
+</Info>
+
+## POST /ai/accessibility
+
+Called during the onboarding accessibility wizard to recommend the best UI theme and settings for the user. The model takes behavioral and self-reported signals and returns a tailored accessibility profile.
+
+<Note>
+  Model accuracy: **0.89**.
+</Note>
+
+### Request body
+
+<ParamField body="can_read_small_text" type="boolean" required>
+  Whether the user can comfortably read small text.
+</ParamField>
+
+<ParamField body="uses_screen_reader" type="boolean" required>
+  Whether the user relies on a screen reader.
+</ParamField>
+
+<ParamField body="feels_confident_with_apps" type="string" required>
+  Self-reported confidence level with mobile apps. Accepted values: `"low"`, `"medium"`, `"high"`.
+</ParamField>
+
+<ParamField body="age_range" type="string" required>
+  User's age bracket. Accepted values: `"18_30"`, `"31_50"`, `"51_60"`, `"60_plus"`.
+</ParamField>
+
+<ParamField body="avg_time_per_screen_seconds" type="integer" required>
+  Average time the user spends per screen during the session. Must be `≥ 0`.
+</ParamField>
+
+<ParamField body="total_validation_errors" type="integer" required>
+  Total number of validation errors across the session. Must be `≥ 0`.
+</ParamField>
+
+<ParamField body="requested_help_count" type="integer" required>
+  Number of times the user explicitly requested help during the session. Must be `≥ 0`.
+</ParamField>
+
+<ParamField body="user_id" type="string">
+  Optional user identifier for logging and analytics.
+</ParamField>
+
+### Response
+
+<ResponseField name="user_id" type="string">
+  Echoed user identifier from the request.
+</ResponseField>
+
+<ResponseField name="model_version" type="string" required>
+  Version of the accessibility model that produced the recommendation.
+</ResponseField>
+
+<ResponseField name="recommendation" type="object" required>
+  <Expandable title="recommendation properties">
+    <ResponseField name="theme" type="string" required>
+      Recommended UI theme. See [theme values](#theme-values) below.
+    </ResponseField>
+    <ResponseField name="screen_reader_mode" type="boolean" required>
+      Whether screen reader optimizations should be enabled.
+    </ResponseField>
+    <ResponseField name="font_scale" type="number" required>
+      Recommended font scale multiplier, e.g., `1.2` or `1.6`.
+    </ResponseField>
+    <ResponseField name="nudging_level" type="string" required>
+      Recommended nudging sensitivity: `"low"`, `"medium"`, or `"high"`.
+    </ResponseField>
+    <ResponseField name="voice_feedback" type="boolean" required>
+      Whether voice feedback should be enabled.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="confidence" type="number" required>
+  Model confidence score between `0.0` and `1.0`.
+</ResponseField>
+
+<ResponseField name="explanation" type="string[]" required>
+  Human-readable list of reasons for the recommendation.
+</ResponseField>
+
+### Theme values
+
+| Theme | Description | Font scale |
+|-------|-------------|------------|
+| `standard-accessible` | Default accessible mode for most users. | `1.2` |
+| `large-text-high-contrast` | For low vision or older users who need increased readability. | `1.6` |
+| `voice-assisted` | For screen reader users. Enables voice feedback. | `1.2` |
+
+<CodeGroup>
+
+```bash curl
+curl --request POST \
+  --url http://localhost:8001/ai/accessibility \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "user_id": "user-123",
+  "can_read_small_text": false,
+  "uses_screen_reader": false,
+  "feels_confident_with_apps": "low",
+  "age_range": "60_plus",
+  "avg_time_per_screen_seconds": 45,
+  "total_validation_errors": 6,
+  "requested_help_count": 2
+}'
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "user_id": "user-123",
+  "model_version": "accessibility-v1.1",
+  "recommendation": {
+    "theme": "large-text-high-contrast",
+    "screen_reader_mode": false,
+    "font_scale": 1.6,
+    "nudging_level": "high",
+    "voice_feedback": false
+  },
+  "confidence": 0.9,
+  "explanation": ["Increased font and contrast for readability"]
+}
+```

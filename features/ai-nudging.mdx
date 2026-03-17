@@ -1,0 +1,124 @@
+---
+title: AI Nudging Engine
+description: How B-Accesible detects user difficulty in real time and offers contextual, non-manipulative guidance.
+---
+
+The AI nudging engine monitors behavioral signals on each screen and offers contextual help when a user appears to be struggling. Nudges are informational and non-intrusive — they are never used to push financial products or influence decisions.
+
+## How it works
+
+<Steps>
+  <Step title="Collect behavioral signals">
+    As the user interacts with a screen, the frontend tracks the following signals:
+
+    | Signal | Description |
+    |---|---|
+    | `screen` | Screen identifier, e.g. `send-money` |
+    | `num_validation_errors` | Number of form validation errors triggered |
+    | `time_on_screen_seconds` | Total time spent on the current screen |
+    | `num_back_navigations` | Number of times the user navigated backwards |
+    | `steps_total` | Total steps in a multi-step flow |
+    | `current_step` | Current step index in the flow |
+  </Step>
+  <Step title="Send signals to the nudging API">
+    Signals are sent to the nudging inference endpoint:
+
+    ```http
+    POST /ai/nudge
+    ```
+
+    ```json
+    {
+      "screen": "send-money",
+      "num_validation_errors": 3,
+      "time_on_screen_seconds": 75,
+      "num_back_navigations": 1,
+      "steps_total": 4,
+      "current_step": 2
+    }
+    ```
+  </Step>
+  <Step title="Receive nudge recommendation">
+    The model responds with a difficulty score and the recommended nudge type:
+
+    ```json
+    {
+      "screen": "send-money",
+      "model_version": "nudging-v1.0",
+      "result": {
+        "needs_help": true,
+        "difficulty_score": 0.82,
+        "recommended_nudge_type": "assist",
+        "reason": "high_error_rate_or_time"
+      }
+    }
+    ```
+
+    - `needs_help` — Whether a nudge should be shown.
+    - `difficulty_score` — Continuous score from 0 to 1 indicating estimated difficulty level.
+    - `recommended_nudge_type` — One of `assist`, `info`, or `warning`.
+    - `reason` — Human-readable code explaining the trigger.
+  </Step>
+  <Step title="Display the nudge">
+    If `needs_help` is `true`, the frontend renders the appropriate nudge component. The user can dismiss the nudge at any time.
+  </Step>
+</Steps>
+
+---
+
+## Nudge types
+
+The nudge type is determined by the `difficulty_score` returned by the model.
+
+| Nudge type | Score threshold | Behavior |
+|---|---|---|
+| `assist` | > 0.75 | Direct step-by-step help is offered to guide the user through the current action |
+| `info` | > 0.4 | An informational hint is shown, providing context about the current screen |
+| `warning` | ≤ 0.4 | A soft security reminder is displayed, e.g. to verify recipient details |
+
+<Note>The `assist` nudge is the most active intervention. It presents the user with a guided walkthrough of the current screen, broken down into clear steps.</Note>
+
+---
+
+## Fallback logic
+
+When the AI model is unavailable or not loaded, the frontend applies a rule-based fallback to ensure users still receive help.
+
+A nudge is triggered if **either** of the following conditions is met:
+
+- `num_validation_errors >= 2`
+- `time_on_screen_seconds > 60`
+
+<Tip>The fallback always triggers an `assist`-level nudge to err on the side of providing more help.</Tip>
+
+---
+
+## Model performance
+
+The nudging model (`nudging-v1.0`) was trained on synthetic user interaction data.
+
+| Metric | Value |
+|---|---|
+| Accuracy | 0.83 |
+| F1 score (macro avg) | 0.80 |
+
+---
+
+## Ethical principles
+
+The nudging engine is designed around the following commitments:
+
+<Columns cols={2}>
+  <Card title="User in control" icon="hand">
+    Every nudge includes a dismiss option. The user is never forced to engage with a nudge.
+  </Card>
+  <Card title="Non-commercial" icon="shield">
+    Nudging is strictly informational. It is never used to promote financial products or influence purchase decisions.
+  </Card>
+  <Card title="Transparent" icon="info">
+    Every nudge includes a brief, plain-language explanation of why it was triggered.
+  </Card>
+  <Card title="Respectful tone" icon="message-circle">
+    Nudge copy avoids technical jargon and is written in a calm, supportive tone appropriate for all age groups.
+  </Card>
+</Columns>

@@ -1,0 +1,332 @@
+---
+title: Docker Compose deployment
+description: Deploy the full B-Accesible backend stack locally using Docker Compose.
+---
+
+This guide walks you through running all B-Accesible backend services with a single `docker compose up --build` command.
+
+## Port reference
+
+| Port | Service |
+|------|---------|
+| `5000` | API Gateway (OcelotGateway) |
+| `1433` | SQL Server 2022 |
+| `7002` | Analytics Service |
+| `5173` | Frontend — Vite dev server (run separately) |
+| `8001` | AI Service — Python/uvicorn (run separately) |
+
+## Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) 24+ (or Docker Engine + Compose plugin)
+- At least 4 GB of RAM allocated to Docker
+- Ports `5000`, `1433`, and `7002` available on your machine
+
+## Setup
+
+<Steps>
+
+<Step title="Clone the repository and navigate to the backend directory">
+
+```bash
+git clone <repo-url>
+cd backend
+```
+
+</Step>
+
+<Step title="Create the .env file">
+
+Create a `.env` file in the `backend/` directory with your secrets. Docker Compose reads this file automatically.
+
+<Warning>
+Never commit your `.env` file to version control. Add it to `.gitignore`.
+</Warning>
+
+<CodeGroup>
+
+```env .env
+JWT_SECRET_KEY=your-super-secret-key-min-32-characters-long
+DB_PASSWORD=YourStr0ng!Password
+```
+
+</CodeGroup>
+
+<Warning>
+`SA_PASSWORD` is hard-coded in `docker-compose.yml` as `123SPEI` for local development. SQL Server requires passwords to meet complexity rules: at least 8 characters with uppercase letters, lowercase letters, digits, and a special character. Weak passwords will cause the SQL Server container to fail on startup.
+</Warning>
+
+</Step>
+
+<Step title="Build images and start all services">
+
+```bash
+docker compose up --build
+```
+
+The first build downloads the SQL Server base image and compiles all .NET projects. This can take several minutes. Subsequent starts are much faster.
+
+<Tip>
+Run in detached mode to free your terminal after startup:
+
+```bash
+docker compose up --build -d
+```
+</Tip>
+
+</Step>
+
+<Step title="Verify services are running">
+
+```bash
+docker compose ps
+```
+
+All five containers should show a `running` or `Up` status:
+
+| Container | Status |
+|-----------|--------|
+| `hackathon-sql-server` | Up |
+| `hackathon-gateway` | Up |
+| `hackathon-auth` | Up |
+| `hackathon-ledger` | Up |
+| `hackathon-analytics` | Up |
+| `hackathon-openfinance` | Up |
+
+</Step>
+
+</Steps>
+
+## Health checks
+
+Once the stack is running, verify key endpoints:
+
+```bash
+# API Gateway
+curl http://localhost:5000
+
+# Analytics Service (direct)
+curl http://localhost:7002/api/analytics
+```
+
+<Note>
+The .NET services wait for SQL Server to be reachable but do not use a formal healthcheck probe. If a service crashes immediately after starting, SQL Server may still be initializing. Wait 15–20 seconds and run `docker compose restart <service-name>`.
+</Note>
+
+## Docker Compose file
+
+```yaml docker-compose.yml
+version: "3.8"
+
+services:
+  sql-server-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: hackathon-sql-server
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "123SPEI"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql-server-data:/var/opt/mssql
+
+  ocelot-gateway:
+    container_name: hackathon-gateway
+    build:
+      context: ./OcelotGateway
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - JwtSettings__Key=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=https://api.backendAuth.com
+      - JwtSettings__Audience=https://app.backendAuth.com
+    depends_on:
+      - authprofileservice
+      - ledgerservice
+      - openfinanceservice
+
+  authprofileservice:
+    container_name: hackathon-auth
+    build:
+      context: ./AuthService
+      dockerfile: Dockerfile
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sql-server-db;Database=auth_db;...
+      - JwtSettings__Key=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=https://api.backendAuth.com
+      - JwtSettings__Audience=https://app.backendAuth.com
+    depends_on:
+      - sql-server-db
+
+  ledgerservice:
+    container_name: hackathon-ledger
+    build:
+      context: ./LedgerService
+      dockerfile: Dockerfile
+    environment:
+      - ConnectionStrings__LedgerDbConnection=Server=sql-server-db;Database=ledger_db;...
+      - JwtSettings__Key=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=https://api.backendAuth.com
+      - JwtSettings__Audience=https://app.backendAuth.com
+    depends_on:
+      - sql-server-db
+
+  analyticsservice:
+    container_name: hackathon-analytics
+    build:
+      context: ./AnalyticsService
+      dockerfile: Dockerfile
+    ports:
+      - "7002:8080"
+    environment:
+      - ConnectionStrings__AnalyticsDbConnection=Server=sql-server-db;Database=analytics_db;...
+      - JwtSettings__Key=${JWT_SECRET_KEY}
+    depends_on:
+      - sql-server-db
+
+  openfinanceservice:
+    container_name: hackathon-openfinance
+    build:
+      context: ./OpenFinanceService
+      dockerfile: Dockerfile
+    environment:
+      - ConnectionStrings__OpenFinanceDbConnection=Server=sql-server-db;Database=openfinance_db;...
+      - JwtSettings__Key=${JWT_SECRET_KEY}
+    depends_on:
+      - sql-server-db
+
+volumes:
+  sql-server-data:
+```
+
+## Common operations
+
+### Stopping services
+
+<CodeGroup>
+
+```bash Stop (keep containers)
+docker compose stop
+```
+
+```bash Stop and remove containers
+docker compose down
+```
+
+```bash Stop and remove containers + volumes
+docker compose down -v
+```
+
+</CodeGroup>
+
+<Warning>
+Running `docker compose down -v` deletes the `sql-server-data` volume and **all database data**. Only use this when you want a clean slate.
+</Warning>
+
+### Rebuilding a single service
+
+When you change code in one service, you can rebuild and restart only that container without touching the others:
+
+```bash
+docker compose up --build -d <service-name>
+```
+
+For example, to rebuild only the Auth service:
+
+```bash
+docker compose up --build -d authprofileservice
+```
+
+### Viewing logs
+
+<CodeGroup>
+
+```bash All services
+docker compose logs -f
+```
+
+```bash Single service
+docker compose logs -f authprofileservice
+```
+
+</CodeGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+
+<Accordion title="Port already in use">
+
+If Docker reports that port `5000`, `1433`, or `7002` is already in use, either stop the conflicting process or change the host-side port mapping in `docker-compose.yml`:
+
+```yaml
+ports:
+  - "5001:8080"  # Changed 5000 → 5001
+```
+
+To find what is using a port:
+
+```bash
+# macOS / Linux
+lsof -i :5000
+
+# Windows
+netstat -ano | findstr :5000
+```
+
+</Accordion>
+
+<Accordion title="SQL Server container exits immediately">
+
+The most common cause is a password that does not meet SQL Server complexity requirements. The `SA_PASSWORD` value `123SPEI` may fail depending on the SQL Server version. Requirements:
+
+- At least 8 characters
+- Contains uppercase letters (A–Z)
+- Contains lowercase letters (a–z)
+- Contains digits (0–9)
+- Contains a special character (e.g., `!`, `@`, `#`)
+
+Update `SA_PASSWORD` in `docker-compose.yml` and also update the `ConnectionStrings` environment variables in each dependent service to match the new password.
+
+Check the container logs for the exact error:
+
+```bash
+docker compose logs sql-server-db
+```
+
+</Accordion>
+
+<Accordion title="Service cannot connect to SQL Server on startup">
+
+The .NET services start immediately but SQL Server takes 15–30 seconds to finish initializing. If a service crashes before SQL Server is ready, restart it:
+
+```bash
+docker compose restart authprofileservice
+```
+
+For a permanent fix, add a `healthcheck` and `condition: service_healthy` to the `depends_on` block for each service.
+
+</Accordion>
+
+<Accordion title="Image build fails with a NuGet restore error">
+
+This is usually a network issue during the first build. Retry:
+
+```bash
+docker compose build --no-cache
+```
+
+</Accordion>
+
+<Accordion title="Changes to code are not reflected after restart">
+
+Docker caches build layers. To force a full rebuild of a service:
+
+```bash
+docker compose build --no-cache <service-name>
+docker compose up -d <service-name>
+```
+
+</Accordion>
+
+</AccordionGroup>

@@ -1,0 +1,200 @@
+---
+title: "AI ethics"
+description: "Ethical principles, privacy-by-design, and responsible AI framework guiding B-Accesible's design and development."
+---
+
+B-Accesible is built for a population that has historically been excluded from formal financial services — older adults, people with disabilities, rural communities, and people with low digital literacy. With that responsibility comes a rigorous ethical framework anchored in international standards and Mexico's own legal and digital rights landscape.
+
+<Info>
+  Over 50% of Mexican adults lack access to formal financial services. Among rural and indigenous communities, digital banking adoption is under 20%. B-Accesible addresses this gap by making AI work *for* users, not on them.
+</Info>
+
+---
+
+## Governing frameworks
+
+B-Accesible's ethical design draws from the following frameworks:
+
+| Framework | Scope |
+|---|---|
+| Menlo Report (2012) | Ethics in ICT research: respect, beneficence, justice, respect for law |
+| Mexico's Digital Rights Charter (2022) | Freedom from bias, explainability, contextual privacy, digital inclusion |
+| UNESCO AI Ethics Guidelines (2021) | Human oversight, non-discrimination, sustainability, accountability |
+| LFPDPPP | Mexico's Personal Data Protection Law — governs collection, use, and transfer of personal data |
+| National Cybersecurity Strategy (2017) | Baseline security requirements for digital services in Mexico |
+| Draft Federal Cybersecurity Law (2024) | Emerging obligations for software systems handling sensitive citizen data |
+| Mexico AI Regulatory Framework Proposal (2025) | Emerging national AI governance standards |
+
+---
+
+## Core ethical principles
+
+<AccordionGroup>
+  <Accordion title="Autonomy and informed consent" icon="hand" defaultOpen={false}>
+    All interface adaptations require explicit, reversible consent from the user. The system never silently changes behavior — it offers options and respects refusals.
+
+    **In practice:** The user decides whether to receive step-by-step guidance, activate easy-read mode, or customize the display. Each accessibility setting can be enabled or disabled at any time from the profile screen. No adaptation is locked in without the user's active choice.
+  </Accordion>
+
+  <Accordion title="Privacy by design" icon="shield" defaultOpen={false}>
+    Personal data is protected from the earliest design stage, not added as a compliance layer afterward.
+
+    **In practice:** AI models process only usage metadata — interaction timing, navigation patterns, validation errors. No banking data, biometric data, or personally identifiable information is passed to any AI model. Training datasets are fully synthetic.
+  </Accordion>
+
+  <Accordion title="Non-discrimination" icon="scale-balanced" defaultOpen={false}>
+    The system must not reproduce or amplify bias based on age, disability status, language, or educational background.
+
+    **In practice:** The adaptive interface adjusts language, iconography, and color schemes to match user needs without categorizing users in exclusionary ways. Accessibility themes are offered as preferences, not assigned as deficits.
+  </Accordion>
+
+  <Accordion title="Explainability and transparency" icon="magnifying-glass" defaultOpen={false}>
+    Every AI-driven decision must be understandable to the user in plain language.
+
+    **In practice:** When the system suggests an interface change or offers assistance, it explains why — for example: *"We suggest this because we detected difficulty reading the text."* Explanations use common vocabulary, avoid technical jargon, and never assume prior knowledge.
+  </Accordion>
+
+  <Accordion title="Direct user benefit" icon="heart" defaultOpen={false}>
+    AI features must maximize tangible benefits to the user and minimize risks. Commercial interests must not shape AI behavior.
+
+    **In practice:** The nudging engine is used for fraud prevention and building user confidence — never for monetizing behavior, upselling, or influencing financial decisions. Interaction data is not shared with third parties.
+  </Accordion>
+
+  <Accordion title="Social justice" icon="people-group" defaultOpen={false}>
+    B-Accesible prioritizes communities that have been systematically excluded from digital financial services.
+
+    **In practice:** Design decisions explicitly account for rural users, older adults, and people with disabilities. Iconography is culturally relevant to Mexican contexts. Future roadmap includes indigenous language support.
+  </Accordion>
+
+  <Accordion title="Robustness and security" icon="lock" defaultOpen={false}>
+    The system must operate safely, predictably, and resiliently under real-world conditions.
+
+    **In practice:** Input validation controls prevent malformed data from reaching AI models. Controlled testing protocols detect failure modes before production deployment. Session tokens are temporary and communication is encrypted over HTTPS.
+  </Accordion>
+
+  <Accordion title="Accountability" icon="clipboard-list" defaultOpen={false}>
+    Responsible parties must be identifiable and traceable for every AI-driven action.
+
+    **In practice:** The system maintains ethical and technical audit logs of AI model behavior, including model version, prediction purpose, and timestamp. This enables post-hoc review of any AI-influenced decision.
+  </Accordion>
+
+  <Accordion title="Inclusive growth" icon="chart-line" defaultOpen={false}>
+    Technology must contribute to social and economic progress, not only commercial value.
+
+    **In practice:** Accessible interfaces lower the barrier to financial participation for people with disabilities and those with low digital literacy. The system promotes gradual digital education rather than requiring prior expertise.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Ethical nudging
+
+B-Accesible's nudging system is grounded in Nudge Theory (Thaler & Sunstein, 2008), reinterpreted through a human-centered AI lens. It detects confusion patterns — repeated errors, long pauses, excessive back-navigation — and offers contextual help without imposing it.
+
+<Tip>
+  The nudging engine asks: *"¿Deseas que te guíe paso a paso?"* (Would you like step-by-step guidance?) — and always accepts "no" as a valid answer.
+</Tip>
+
+**Design constraints on the nudging system:**
+
+- Preserves user autonomy at all times — help is offered, never forced
+- Uses a respectful tone: no technical jargon, not infantilizing
+- Never used for commercial purposes or to influence financial decisions
+- Each intervention includes a brief plain-language explanation
+- Detects signals only from interaction metadata (not personal data)
+- All nudge logic is version-controlled and auditable
+
+---
+
+## Privacy and digital security
+
+B-Accesible's data practices are designed to comply with Mexico's LFPDPPP and reflect the Digital Rights Charter's recognition of contextual privacy.
+
+1. **Minimal data collection** — only interaction data is collected: time on screen, validation errors, navigation events
+2. **Full anonymization** — all training datasets use synthetic data; no real user data is used in model training
+3. **Encrypted communication** — HTTPS for all API calls; temporary, scoped session tokens
+4. **AI ethics audit trail** — every prediction is logged with its purpose, model version, and timestamp
+5. **No sensitive personal data** — no banking credentials, biometrics, location, or demographic data collected or transferred
+6. **Digital rights recognized** — users have the right to freedom from bias, explainability of decisions, contextual privacy, digital inclusion, and digital education
+
+<Warning>
+  B-Accesible is a proof-of-concept. In a production deployment, a full LFPDPPP privacy notice, data processing agreements, and formal consent flows would be required before handling any real user data.
+</Warning>
+
+---
+
+## Universal accessibility
+
+B-Accesible targets **WCAG 2.1 Level AA** compliance and is aligned with **EN 301 549** (Accessibility requirements for ICT products and services in Europe, used as an international baseline).
+
+| Feature | Implementation |
+|---|---|
+| High contrast mode | Multiple contrast themes, user-selectable |
+| Large text | Scalable via on-screen controls |
+| Voice navigation | Web Speech API with es-MX locale |
+| Auditory feedback | TTS confirmation for key actions |
+| Culturally relevant iconography | Symbols recognizable in Mexican everyday life |
+| Clear language | Plain-language summaries for all key actions |
+| Screen reader support | ARIA landmarks, labels, and live regions |
+
+<Note>
+  The roadmap includes indigenous language support — Nahuatl, Mixtec, and Zapotec — via local TTS engines. This reflects B-Accesible's commitment to communities where Spanish is a second language.
+</Note>
+
+---
+
+## Expected social impact
+
+<CardGroup cols={2}>
+  <Card title="Financial inclusion" icon="building-columns">
+    Provides access to basic mobile banking operations for populations with no prior digital experience, bridging a gap affecting more than half of Mexico's adult population.
+  </Card>
+  <Card title="Fraud reduction" icon="shield-halved">
+    Preventive AI that flags suspicious behavior in real time, helping protect vulnerable users from coercive fraud targeting people unfamiliar with digital transactions.
+  </Card>
+  <Card title="Inclusive financial education" icon="graduation-cap">
+    Reinforces common financial terms and transaction concepts through spoken examples and contextual guidance, building financial literacy alongside digital literacy.
+  </Card>
+  <Card title="Digital autonomy" icon="person-walking">
+    Reduces technophobia through step-by-step guidance, empathetic language, and gradual digital education — promoting confidence rather than dependency.
+  </Card>
+</CardGroup>
+
+---
+
+## Algorithmic transparency
+
+All AI models in B-Accesible are designed to be inspectable, auditable, and improvable:
+
+- **Documented synthetic datasets** — each model is trained with diverse, representative synthetic data; variables, known biases, and limitations are documented alongside the model
+- **Version control** — every model artifact includes a version identifier and training date
+- **Plain-language explanations** — model outputs are translated into human-readable messages before being shown to users (e.g., *"We recommend large text because you indicated visual difficulty"*)
+- **Open source and auditable** — model code, training scripts, and evaluation metrics are available in the repository
+- **Continuous monitoring** — model performance is tracked over time and models are retrained when drift is detected
+
+---
+
+## Ethical license
+
+B-Accesible is released under the MIT License with an additional ethical use clause. The clause explicitly **prohibits** use of this software in:
+
+- Surveillance or coercion systems
+- Discriminatory or exploitative applications
+- Commercial applications that manipulate financial or political decisions
+
+This clause reflects the project's commitment to ensuring the technology serves the communities it was designed for, and cannot be repurposed to harm them.
+
+---
+
+## Compliance summary
+
+| Criterion | Status |
+|---|---|
+| WCAG 2.1 Level AA | ✅ Implemented |
+| LFPDPPP compliance | ✅ No sensitive personal data collected |
+| AI explainability | ✅ Plain-language model explanations |
+| Informed consent | ✅ All adaptations require explicit user consent |
+| Non-discrimination | ✅ No exclusionary classification of users |
+| Audit trail | ✅ Ethics and technical logs maintained |
+| Minimal data collection | ✅ Interaction metadata only |
+| Open source and auditable | ✅ MIT license with ethical clause |

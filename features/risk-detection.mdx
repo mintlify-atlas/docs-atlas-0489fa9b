@@ -1,0 +1,130 @@
+---
+title: Transaction Risk Detection
+description: How B-Accesible scores every transaction for fraud risk and communicates alerts to users in plain language.
+---
+
+Before any transfer is confirmed, B-Accesible evaluates the transaction against a set of risk factors using an AI model. If the risk level is elevated, the user sees a plain-language explanation and is prompted to review before proceeding. Alerts are designed to inform, not alarm.
+
+## Risk scoring
+
+Every transaction is evaluated by calling `POST /ai/risk` with context about the transaction and the user's history.
+
+```http
+POST /ai/risk
+```
+
+**Request body:**
+
+```json
+{
+  "amount": 15000.00,
+  "is_new_beneficiary": true,
+  "hour_of_day": 14,
+  "num_past_transactions": 12,
+  "avg_transaction_amount": 5000.00,
+  "max_transaction_amount": 8000.00,
+  "num_transactions_to_beneficiary": 0,
+  "is_new_device": false,
+  "geolocation_changed": false
+}
+```
+
+**Response:**
+
+```json
+{
+  "model_version": "risk-v1.0",
+  "result": {
+    "risk_level": "medium",
+    "risk_score": 0.62,
+    "risk_factors": ["NEW_BENEFICIARY", "AMOUNT_MUCH_HIGHER_THAN_AVERAGE"]
+  }
+}
+```
+
+---
+
+## Risk inputs
+
+| Field | Type | Description |
+|---|---|---|
+| `amount` | number | Transaction amount in MXN |
+| `is_new_beneficiary` | boolean | Whether the recipient has not received a transfer from this user before |
+| `hour_of_day` | integer (0–23) | Local hour when the transaction is initiated |
+| `num_past_transactions` | integer | Total number of past transactions by this user |
+| `avg_transaction_amount` | number | Historical average transaction amount for this user |
+| `max_transaction_amount` | number | Historical maximum transaction amount for this user |
+| `num_transactions_to_beneficiary` | integer | Number of prior transfers this user has made to this specific recipient |
+| `is_new_device` | boolean | Whether the request originates from a device not previously seen for this account |
+| `geolocation_changed` | boolean | Whether the user's detected location differs from their usual location |
+
+---
+
+## Risk levels
+
+<Tabs>
+  <Tab title="low">
+    **Risk score below threshold**
+
+    The transaction proceeds normally with no interruption to the user flow.
+
+    No alert is shown. The `RiskBadge` component displays a green indicator.
+  </Tab>
+  <Tab title="medium">
+    **Elevated risk detected**
+
+    The `RiskBadge` component displays a yellow indicator and the `ConfirmDialog` shows a plain-language explanation before the user can proceed.
+
+    Example message shown to the user:
+
+    > *"Esta transferencia es inusual. ¿Deseas revisarla antes de enviar?"*
+
+    The user must explicitly confirm or cancel the transaction.
+
+    <Note>Medium-risk alerts are informational. The user retains full control and can proceed after reviewing the details.</Note>
+  </Tab>
+  <Tab title="high">
+    **High risk detected**
+
+    The `RiskBadge` component displays a red indicator. A stronger confirmation is required before the transaction can proceed.
+
+    The `ConfirmDialog` presents the specific risk factors identified by the model in plain language, and the user must take an explicit confirmation action.
+
+    <Warning>High-risk transactions require deliberate confirmation. The flow is designed to give users time to reconsider without blocking legitimate transfers entirely.</Warning>
+  </Tab>
+</Tabs>
+
+---
+
+## Risk factor codes
+
+The `risk_factors` array in the response contains one or more of the following codes. Each code corresponds to a specific condition detected by the model.
+
+| Code | Condition |
+|---|---|
+| `AMOUNT_MUCH_HIGHER_THAN_AVERAGE` | The transaction amount is more than 2× the user's historical average |
+| `NEW_BENEFICIARY` | This is the first transfer to this recipient from this account |
+| `UNUSUAL_TIME` | The transaction is initiated outside the 06:00–22:00 window |
+| `NEW_DEVICE` | The request comes from a device not previously associated with this account |
+| `LOCATION_CHANGED` | The user's detected geolocation differs from their typical location |
+| `LOW_HISTORY` | The user has fewer than 3 past transactions, making pattern detection less reliable |
+
+<Note>Risk factor codes are used internally and in developer logs. The UI always shows plain-language descriptions, never raw codes.</Note>
+
+---
+
+## UI components
+
+- **`RiskBadge`** — Displays the risk level visually (green / yellow / red) at the top of the confirmation screen.
+- **`ConfirmDialog`** — Presents the risk explanation and the list of contributing factors before the user confirms the transaction. Buttons are clearly labeled to avoid accidental confirmations.
+
+---
+
+## Model performance
+
+The risk model (`risk-v1.0`) was trained on synthetic transaction data.
+
+| Metric | Value |
+|---|---|
+| Accuracy | 0.75 |
+| F1 score (macro avg) | 0.76 |

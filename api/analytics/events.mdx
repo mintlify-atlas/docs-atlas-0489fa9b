@@ -1,0 +1,102 @@
+---
+title: "Analytics Events"
+description: "Log user interaction events for accessibility impact tracking"
+---
+
+<Warning>
+  This endpoint requires a valid `Authorization: Bearer <token>` header. Requests without a valid token return `401 Unauthorized`.
+</Warning>
+
+## POST /api/analytics/events
+
+Records a user interaction event. Used internally to measure the impact of accessibility features — tracking how often accessibility modes are used, where users encounter difficulty, and how nudging affects flow completion rates.
+
+<Note>
+  Events are only stored if the user has `analyticsConsent: true` in their consent profile. If consent has not been granted, the event is silently discarded.
+</Note>
+
+<Info>
+  No personal financial data is stored in events. Only behavioral interaction metadata is recorded.
+</Info>
+
+### Request body
+
+<ParamField body="eventType" type="string" required>
+  Type of interaction event. Common values:
+  - `"screen_view"` — user navigated to a screen
+  - `"nudge_accepted"` — user accepted a nudge prompt
+  - `"nudge_dismissed"` — user dismissed a nudge prompt
+  - `"theme_changed"` — user changed their accessibility theme
+  - `"transfer_completed"` — user completed a SPEI transfer
+</ParamField>
+
+<ParamField body="screenName" type="string">
+  Name of the screen where the event occurred, e.g., `"send-money"`, `"login"`.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Additional event data as key-value pairs. Use this to attach context-specific information such as the selected theme name or nudge type.
+</ParamField>
+
+<ParamField body="sessionId" type="string">
+  Identifier for the current user session. Used to correlate a sequence of events.
+</ParamField>
+
+### Response
+
+Returns `202 Accepted`. The event is queued for asynchronous processing and is not immediately persisted.
+
+### Error responses
+
+| Status | Description |
+|--------|-------------|
+| `400`  | Validation error — missing or invalid `eventType`. |
+| `401`  | Invalid or missing bearer token. |
+
+<CodeGroup>
+
+```bash screen_view
+curl --request POST \
+  --url http://localhost:5000/api/analytics/events \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "eventType": "screen_view",
+  "screenName": "send-money",
+  "sessionId": "session-456"
+}'
+```
+
+```bash nudge_accepted
+curl --request POST \
+  --url http://localhost:5000/api/analytics/events \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "eventType": "nudge_accepted",
+  "screenName": "send-money",
+  "sessionId": "session-456",
+  "metadata": {
+    "nudge_type": "assist",
+    "difficulty_score": 0.82
+  }
+}'
+```
+
+```bash theme_changed
+curl --request POST \
+  --url http://localhost:5000/api/analytics/events \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "eventType": "theme_changed",
+  "screenName": "settings",
+  "sessionId": "session-456",
+  "metadata": {
+    "previous_theme": "standard-accessible",
+    "new_theme": "large-text-high-contrast"
+  }
+}'
+```
+
+</CodeGroup>

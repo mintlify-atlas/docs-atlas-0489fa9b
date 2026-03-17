@@ -1,0 +1,96 @@
+---
+title: Open Finance
+description: Connect external bank accounts to view all your financial products in one place inside B-Accesible.
+---
+
+The Open Finance feature lets users connect their accounts at other financial institutions so that all their accounts, cards, and loans appear alongside their B-Accesible native accounts in a single view.
+
+## Connecting an external bank
+
+<Steps>
+  <Step title="Navigate to Accounts">
+    Open the **Accounts** view (`AccountsView`). A list of your current B-Accesible accounts is shown. At the bottom, tap **Connect external bank**.
+  </Step>
+  <Step title="Fill in connection details">
+    Enter the name or institution identifier of the bank you want to connect. The form maps to the `CreateConnectionDto` schema.
+
+    ```json
+    {
+      "bank_name": "Banco Nacional",
+      "institution_id": "banco-nacional"
+    }
+    ```
+  </Step>
+  <Step title="Create the connection">
+    The frontend calls `POST /api/openfinance/connections`. On success, the new connection object is returned and displayed in the connected banks list.
+
+    ```json
+    {
+      "id": "conn_abc123",
+      "user_id": "usr_xyz",
+      "bank_name": "Banco Nacional",
+      "institution_id": "banco-nacional",
+      "created_at": "2026-03-17T10:00:00Z"
+    }
+    ```
+  </Step>
+  <Step title="Sync the connection">
+    Tap **Sync** on the new connection to pull the latest data from that institution.
+
+    ```http
+    POST /api/openfinance/sync/{connectionId}
+    ```
+
+    The sync operation fetches current account balances, card details, and loan information.
+  </Step>
+  <Step title="View external products">
+    After a successful sync, external accounts, cards, and loans appear in `AccountsView` and `CardsView` alongside native B-Accesible products.
+  </Step>
+</Steps>
+
+---
+
+## Endpoints
+
+<Columns cols={2}>
+  <Card title="List connections" icon="list">
+    `GET /api/openfinance/connections`
+
+    Returns all external bank connections for the authenticated user.
+  </Card>
+  <Card title="Create connection" icon="plus-circle">
+    `POST /api/openfinance/connections`
+
+    Creates a new connection to an external bank. Requires a bank name and institution identifier.
+  </Card>
+  <Card title="Delete connection" icon="trash-2">
+    `DELETE /api/openfinance/connections/{id}`
+
+    Removes a connection and stops data sync for that institution. Existing product data is also removed.
+  </Card>
+  <Card title="List products" icon="credit-card">
+    `GET /api/openfinance/products`
+
+    Returns all external financial products (accounts, cards, loans) from all connected banks.
+  </Card>
+  <Card title="Sync connection" icon="refresh-cw">
+    `POST /api/openfinance/sync/{connectionId}`
+
+    Triggers a manual sync to pull the latest data from a specific connection.
+  </Card>
+</Columns>
+
+---
+
+## Security
+
+<Note>All Open Finance endpoints require a valid JWT. The user ID is extracted from the JWT token on every request — users can only read and manage their own connections and products. Cross-user data access is not possible.</Note>
+
+---
+
+## Frontend views
+
+| View | Description |
+|---|---|
+| `AccountsView` | Displays native and connected external bank accounts in a unified list |
+| `CardsView` | Displays native and connected external cards from all linked institutions |

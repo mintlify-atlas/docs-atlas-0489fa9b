@@ -1,0 +1,169 @@
+---
+title: Transfers and Ledger
+description: SPEI transfers, accounts, beneficiaries, and the full transaction flow in B-Accesible.
+---
+
+The ledger system manages bank accounts, beneficiaries, and SPEI transfers. All operations require JWT authentication. The `BaseController` extracts the authenticated user's ID from the `ClaimTypes.NameIdentifier` JWT claim on every request.
+
+<Note>SPEI (Sistema de Pagos Electrónicos Interbancarios) is Mexico's interbank electronic payment network. Transfers settle in seconds between any CLABE-enabled account.</Note>
+
+---
+
+## Accounts
+
+Each user can hold one or more bank accounts. Every account has a unique CLABE (Clave Bancaria Estandarizada) number used for incoming SPEI transfers.
+
+<Columns cols={2}>
+  <Card title="Create account" icon="plus-circle">
+    `POST /api/ledger/accounts`
+
+    Creates a new bank account for the authenticated user. Returns the new account object including the generated CLABE number.
+  </Card>
+  <Card title="List accounts" icon="list">
+    `GET /api/ledger/accounts`
+
+    Returns all accounts belonging to the authenticated user, including current balances.
+  </Card>
+</Columns>
+
+Example account object:
+
+```json
+{
+  "id": "acc_001",
+  "user_id": "usr_xyz",
+  "account_number": "646180157000000001",
+  "balance": 12500.00
+}
+```
+
+---
+
+## Beneficiaries
+
+Beneficiaries are trusted recipients saved by the user. Adding a beneficiary before sending money simplifies recurring transfers and enables the risk model to detect first-time recipients.
+
+<Columns cols={3}>
+  <Card title="Add beneficiary" icon="user-plus">
+    `POST /api/ledger/beneficiaries`
+
+    Saves a new recipient with their name and CLABE number.
+  </Card>
+  <Card title="List beneficiaries" icon="users">
+    `GET /api/ledger/beneficiaries`
+
+    Returns all saved beneficiaries for the authenticated user.
+  </Card>
+  <Card title="Remove beneficiary" icon="user-minus">
+    `DELETE /api/ledger/beneficiaries/{id}`
+
+    Removes a beneficiary from the user's saved list.
+  </Card>
+</Columns>
+
+Example beneficiary object:
+
+```json
+{
+  "id": "ben_042",
+  "user_id": "usr_xyz",
+  "name": "María López",
+  "clabe": "646180157000000099"
+}
+```
+
+---
+
+## Transactions
+
+<Columns cols={2}>
+  <Card title="Create transaction" icon="send">
+    `POST /api/ledger/transactions`
+
+    Initiates a SPEI transfer. Called only after the user has confirmed via `ConfirmDialog`.
+  </Card>
+  <Card title="List transactions" icon="clock">
+    `GET /api/ledger/transactions`
+
+    Returns the transaction history for the authenticated user, ordered by timestamp descending.
+  </Card>
+</Columns>
+
+Example transaction object:
+
+```json
+{
+  "id": "txn_789",
+  "sender_account_id": "acc_001",
+  "recipient_clabe": "646180157000000099",
+  "amount": 3000.00,
+  "timestamp": "2026-03-17T14:32:00Z",
+  "status": "completed"
+}
+```
+
+---
+
+## Transfer flow
+
+<Steps>
+  <Step title="Navigate to Transfer">
+    The user opens `TransferView` (the Send Money screen).
+  </Step>
+  <Step title="Select or add a beneficiary">
+    The user picks a recipient from their saved beneficiary list, or adds a new beneficiary inline by entering a CLABE number and name.
+  </Step>
+  <Step title="Enter amount">
+    The user types the transfer amount. Basic validation (positive number, sufficient balance) runs client-side.
+  </Step>
+  <Step title="Risk evaluation">
+    Before showing the confirmation screen, the frontend calls `POST /ai/risk` with the transaction details.
+
+    ```json
+    {
+      "amount": 3000.00,
+      "is_new_beneficiary": false,
+      "hour_of_day": 14,
+      "num_past_transactions": 12,
+      "avg_transaction_amount": 2800.00,
+      "max_transaction_amount": 6000.00,
+      "num_transactions_to_beneficiary": 5,
+      "is_new_device": false,
+      "geolocation_changed": false
+    }
+    ```
+
+    See the [risk detection documentation](/features/risk-detection) for full response details.
+  </Step>
+  <Step title="Review risk alert (if applicable)">
+    If the risk level is `medium` or `high`, the `RiskBadge` component shows the risk level and `ConfirmDialog` presents a plain-language explanation of the detected risk factors. The user can review or cancel before continuing.
+  </Step>
+  <Step title="Confirm the transaction">
+    The user taps **Confirm** in `ConfirmDialog`. The frontend calls:
+
+    ```http
+    POST /api/ledger/transactions
+    ```
+
+    ```json
+    {
+      "sender_account_id": "acc_001",
+      "recipient_clabe": "646180157000000099",
+      "amount": 3000.00
+    }
+    ```
+  </Step>
+  <Step title="Success notification">
+    On a successful response, a toast notification confirms the transfer. The user is returned to the home screen and the account balance updates immediately.
+  </Step>
+</Steps>
+
+---
+
+## Frontend views
+
+| View | Description |
+|---|---|
+| `TransferView` | Send money to a saved beneficiary or a new recipient |
+| `ReceiveView` | Display the user's CLABE number so others can send money to them |
+| `PayServicesView` | Pay bills and services using the same SPEI transfer mechanism |

@@ -1,0 +1,175 @@
+---
+title: "Beneficiaries"
+description: "Manage trusted transfer recipients"
+---
+
+<Warning>
+  All endpoints on this page require a valid `Authorization: Bearer <token>` header. Requests without a valid token return `401 Unauthorized`.
+</Warning>
+
+<Tip>
+  Saving a beneficiary improves risk scoring. Subsequent transfers to a saved beneficiary receive a lower risk score from the [risk assessment model](/api/ai/risk).
+</Tip>
+
+## List beneficiaries
+
+<br />
+
+`GET /api/ledger/beneficiaries`
+
+Returns all saved beneficiaries for the authenticated user.
+
+### Response
+
+<ResponseField name="id" type="string" required>
+  Unique beneficiary identifier (UUID).
+</ResponseField>
+
+<ResponseField name="userId" type="string" required>
+  UUID of the user who owns this beneficiary record.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Beneficiary's full name.
+</ResponseField>
+
+<ResponseField name="clabe" type="string" required>
+  18-digit CLABE of the beneficiary.
+</ResponseField>
+
+<ResponseField name="alias" type="string">
+  Friendly name for quick identification.
+</ResponseField>
+
+<ResponseField name="bankName" type="string">
+  Name of the beneficiary's bank.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string" required>
+  ISO 8601 timestamp of when the beneficiary was saved.
+</ResponseField>
+
+<CodeGroup>
+
+```bash curl
+curl --request GET \
+  --url http://localhost:5000/api/ledger/beneficiaries \
+  --header 'Authorization: Bearer <token>'
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "id": "ben-uuid",
+    "userId": "user-uuid",
+    "name": "Juan Pérez",
+    "clabe": "646180987654321098",
+    "alias": "Juan",
+    "bankName": "BBVA",
+    "createdAt": "2026-03-10T08:00:00Z"
+  }
+]
+```
+
+---
+
+## Add beneficiary
+
+<br />
+
+`POST /api/ledger/beneficiaries`
+
+Saves a new trusted recipient for the authenticated user.
+
+### Request body
+
+<ParamField body="name" type="string" required>
+  Beneficiary's full name.
+</ParamField>
+
+<ParamField body="clabe" type="string" required>
+  Beneficiary's 18-digit CLABE. Must be a valid Mexican interbank CLABE.
+</ParamField>
+
+<ParamField body="alias" type="string">
+  Optional friendly name for the beneficiary.
+</ParamField>
+
+<ParamField body="bankName" type="string">
+  Optional name of the beneficiary's bank.
+</ParamField>
+
+### Error responses
+
+| Status | Description |
+|--------|-------------|
+| `400`  | Validation error — missing or invalid fields. |
+| `401`  | Invalid or missing bearer token. |
+
+<CodeGroup>
+
+```bash curl
+curl --request POST \
+  --url http://localhost:5000/api/ledger/beneficiaries \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "name": "Juan Pérez",
+  "clabe": "646180987654321098",
+  "alias": "Juan",
+  "bankName": "BBVA"
+}'
+```
+
+</CodeGroup>
+
+```json Response (201 Created)
+{
+  "id": "ben-uuid",
+  "userId": "user-uuid",
+  "name": "Juan Pérez",
+  "clabe": "646180987654321098",
+  "alias": "Juan",
+  "bankName": "BBVA",
+  "createdAt": "2026-03-17T14:00:00Z"
+}
+```
+
+---
+
+## Remove beneficiary
+
+<br />
+
+`DELETE /api/ledger/beneficiaries/{id}`
+
+Permanently removes a saved beneficiary. Only the owning user can delete their own beneficiaries.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  UUID of the beneficiary to delete.
+</ParamField>
+
+### Response
+
+Returns `204 No Content` on success with an empty body.
+
+### Error responses
+
+| Status | Description |
+|--------|-------------|
+| `401`  | Invalid or missing bearer token. |
+| `404`  | Beneficiary not found, or it belongs to a different user. |
+
+<CodeGroup>
+
+```bash curl
+curl --request DELETE \
+  --url http://localhost:5000/api/ledger/beneficiaries/ben-uuid \
+  --header 'Authorization: Bearer <token>'
+```
+
+</CodeGroup>
